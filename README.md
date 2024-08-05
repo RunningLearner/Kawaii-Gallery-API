@@ -10,6 +10,8 @@
 
 1. `pip install -r requirements.txt` 필요한 패키지들을 설치합니다.
 
+1. `uvicorn main:app --reload` main이 있는 곳에서 앱을 시작합니다.
+
 ### 종료
 
 `deactivate` 가상환경을 종료합니다.
