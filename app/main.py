@@ -3,7 +3,7 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
-from app.database.conn import db
+from app.database.conn import db, lifespan
 from app.common.config import conf
 from app.routes import index
 
@@ -13,10 +13,10 @@ def create_app():
     :return:
     """
     c = conf()
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
     conf_dict = asdict(c)
     db.init_app(app, **conf_dict)
-     # 데이터 베이스 이니셜라이즈
+    # 데이터 베이스 이니셜라이즈
 
     # 레디스 이니셜라이즈
 
