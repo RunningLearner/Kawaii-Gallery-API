@@ -3,9 +3,19 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
-from app.database.conn import db, lifespan
+from app.database.conn import db
 from app.common.config import conf
 from app.routes import index
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI 애플리케이션의 수명 주기를 관리하는 lifespan 이벤트 핸들러
+    """
+    await db.connect()
+    yield
+    await db.close()
 
 def create_app():
     """

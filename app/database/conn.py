@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from odmantic import AIOEngine
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
-from contextlib import asynccontextmanager
 
 class MongoDB:
     def __init__(self, app: FastAPI = None, **kwargs):
@@ -54,13 +53,3 @@ class MongoDB:
 
 
 db = MongoDB()  # MongoDB 인스턴스 생성
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    FastAPI 애플리케이션의 수명 주기를 관리하는 lifespan 이벤트 핸들러
-    """
-    await db.connect()
-    yield
-    await db.close()
