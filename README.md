@@ -4,9 +4,9 @@
 
 # How to start
 
-1. `python -m venv myenv` 가상환경을 만듭니다.
+1. `python3 -m venv myenv` 가상환경을 만듭니다.
 
-1. `myenv\Scripts\activate` 가상환경을 실행합니다.
+1. [win]`myenv\Scripts\activate`, [mac]`source myenv/bin/activate` 가상환경을 실행합니다.
 
 1. `pip install -r requirements.txt` 필요한 패키지들을 설치합니다.
 
