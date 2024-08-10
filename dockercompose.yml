@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  app:
+    build: ./app
+    container_name: fastapi_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    volumes:
+      - app_data:/app # 명명 볼륨 사용
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db # 명명 볼륨 사용
+
+volumes:
+  app_data: # app 서비스의 명명 볼륨
+  mongo_data: # mongodb 서비스의 명명 볼륨
