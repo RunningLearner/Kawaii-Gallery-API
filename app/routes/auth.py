@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from odmantic import AIOEngine
 from app.database.conn import db
-from app.database.models.user import User, UserCreate
+from app.database.models.user import User
+from app.schemas.user import UserCreate
 from app.utils.password_hash import get_password_hash
 
 router = APIRouter(prefix="/auth")
