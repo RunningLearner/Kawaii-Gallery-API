@@ -27,7 +27,7 @@ class MongoDB:
         MongoDB 연결 함수
         """
         self._client = AsyncIOMotorClient(self.database_url)
-        self._engine = AIOEngine(motor_client=self._client, database=self.db_name)
+        self._engine = AIOEngine(client=self._client, database=self.db_name)
         logging.info("MongoDB connected.")
 
     async def close(self):
