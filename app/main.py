@@ -13,6 +13,12 @@ async def lifespan(app: FastAPI):
     """
     FastAPI 애플리케이션의 수명 주기를 관리하는 lifespan 이벤트 핸들러
     """
+    c = conf()
+    conf_dict = asdict(c)
+    
+    # 데이터 베이스 이니셜라이즈
+    db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
+
     await db.connect()
     yield
     await db.close()
@@ -22,11 +28,7 @@ def create_app():
     앱 함수 실행
     :return:
     """
-    c = conf()
     app = FastAPI(lifespan=lifespan)
-    conf_dict = asdict(c)
-    db.init_app(app, **conf_dict)
-    # 데이터 베이스 이니셜라이즈
 
     # 레디스 이니셜라이즈
 
