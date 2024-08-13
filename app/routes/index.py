@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 import pytz
 from fastapi import APIRouter
 from starlette.responses import Response
