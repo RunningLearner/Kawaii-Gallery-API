@@ -39,7 +39,7 @@ class MongoDB:
             self._client.close()
             logging.info("MongoDB disconnected.")
 
-    def get_engine(self):
+    def get_engine(self) -> AIOEngine :
         """
         Odmantic 엔진을 가져오는 함수
         :return:
