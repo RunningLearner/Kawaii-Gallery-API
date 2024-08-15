@@ -5,7 +5,6 @@ import uvicorn
 from fastapi import FastAPI
 from app.database.conn import db
 from app.common.config import conf
-from app.routes import index, auth
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -20,6 +19,17 @@ async def lifespan(app: FastAPI):
     db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
 
     await db.connect()
+
+    # 레디스 이니셜라이즈
+
+    # 미들웨어 정의
+
+    # 라우터 정의
+    from app.routes import index, auth
+
+    app.include_router(index.router)
+    app.include_router(auth.router, tags=["Authentication"], prefix="/api")  
+
     yield
     await db.close()
 
@@ -30,13 +40,6 @@ def create_app():
     """
     app = FastAPI(lifespan=lifespan)
 
-    # 레디스 이니셜라이즈
-
-    # 미들웨어 정의
-
-    # 라우터 정의
-    app.include_router(index.router)
-    app.include_router(auth.router, tags=["Authentication"], prefix="/api")  
     return app
 
     

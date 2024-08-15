@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from odmantic import AIOEngine
 from app.database.conn import db
 from app.database.models.user import User
@@ -8,34 +8,15 @@ import requests
 
 
 user_info_url_kakao = "https://kapi.kakao.com/v2/user/me"
-token_url_kakao = "https://kauth.kakao.com/oauth/token"
 
 router = APIRouter(prefix="/auth")
 
-@router.get("/callback/kakao", response_model=User)
-async def kakao_login():
-    code = requests.query_params.get("code")
-
-    if not code:
-        raise HTTPException(status_code=400, detail="Authorization code not provided")
-
-    # 카카오에 액세스 토큰 요청
-    token_response = requests.post(token_url_kakao, data={
-        'grant_type': 'authorization_code',
-        'client_id': KAKAO_CLIENT_ID,
-        'client_secret': KAKAO_CLIENT_SECRET,  # 선택사항, 설정한 경우 필요
-        'redirect_uri': KAKAO_REDIRECT_URI,
-        'code': code,
-    })
-
-    if token_response.status_code != 200:
-        raise HTTPException(status_code=token_response.status_code, detail="Failed to get access token")
-
-    access_token = token_response.json().get('access_token')
-
+@router.post("/login/kakao", response_model=User)
+async def kakao_login(access_token: str = Body(..., embed=True)):
     # 액세스 토큰으로 사용자 정보 요청
     user_info_response = requests.get(user_info_url_kakao, headers={
-        'Authorization': f'Bearer {access_token}'
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
     })
 
     if user_info_response.status_code != 200:
@@ -49,10 +30,11 @@ async def kakao_login():
         raise HTTPException(status_code=400, detail="Email not provided by Kakao")
 
     # 여기서 이메일이나 기타 사용자 정보를 바탕으로 추가 처리를 할 수 있습니다.
-    return await login(email)
+    return await verify(email)
 
-
-async def login(email: UserCreate, engine: AIOEngine = Depends(db.get_engine)):
+async def verify(email: UserCreate):
+    engine: AIOEngine = db.get_engine()
+    print(f"Engine type: {type(engine)}")
     # 이메일 중복 체크
     existing_user = await engine.find_one(User, {"$or": [{"email": email}]})
 
