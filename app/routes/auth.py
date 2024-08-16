@@ -3,7 +3,7 @@ from odmantic import AIOEngine
 from app.database.conn import db
 from app.database.models.user import User
 from app.schemas.user import UserCreate
-from app.utils.token import create_access_token
+from app.utils.token_utils import create_access_token
 import requests
 
 

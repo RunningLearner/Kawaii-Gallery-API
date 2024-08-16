@@ -29,7 +29,7 @@ class MongoDB:
         self._client = AsyncIOMotorClient(self.database_url)
         self._engine = AIOEngine(client=self._client, database=self.db_name)
         logging.info("MongoDB connected.")
-        print(f"MongoDB connected.{self.db_name}" )
+        print(f"MongoDB connected.{self.db_name}")
 
     async def close(self):
         """

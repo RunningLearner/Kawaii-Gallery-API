@@ -1,11 +1,17 @@
 from dataclasses import asdict
-from typing import Optional
 
 import uvicorn
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.database.conn import db
 from app.common.config import conf
 from contextlib import asynccontextmanager
+
+# Static 파일 경로 설정
+UPLOAD_DIRECTORY = "./uploads"
+if not os.path.exists(UPLOAD_DIRECTORY):
+    os.makedirs(UPLOAD_DIRECTORY)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,8 +34,10 @@ async def lifespan(app: FastAPI):
     from app.routes import index, auth
 
     app.include_router(index.router)
-    app.include_router(auth.router, tags=["Authentication"], prefix="/api")  
+    app.include_router(auth.router, tags=["Authentication"], prefix="/api")
 
+    # 정적 파일 제공 경로 매핑  
+    app.mount("/static", StaticFiles(directory=UPLOAD_DIRECTORY), name="static")
     yield
     await db.close()
 
