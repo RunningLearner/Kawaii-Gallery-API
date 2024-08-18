@@ -1,5 +1,5 @@
 from app.database.models.post import Post
-from fastapi import APIRouter, HTTPException, Depends, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
 from app.main import UPLOAD_DIRECTORY
@@ -11,14 +11,16 @@ router = APIRouter(prefix="/post")
 
 
 # Create - 게시글 생성
-@router.post("/", response_model=Post)
+@router.post("/")
 async def create_post(
-    title: str,
-    content: str,
-    image: UploadFile,
+    title: str = Form(...),
+    content: str = Form(...),
+    image: UploadFile = File(...),
     engine: AIOEngine = Depends(db.get_engine),
     user_email: str = Depends(get_current_user_email),
 ):
+    print("hi")
+    print(user_email)
     image_path = os.path.join(UPLOAD_DIRECTORY, image.filename)
 
     # 이미지 파일 저장
@@ -42,7 +44,7 @@ async def create_post(
 
 
 # Read - 게시글 조회 (ID 기반)
-@router.get("/{post_id}", response_model=Post)
+@router.get("/{post_id}")
 async def read_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine)):
     post = await engine.find_one(Post, Post.id == post_id)
     if not post:
@@ -51,7 +53,7 @@ async def read_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine
 
 
 # Read - 모든 게시글 조회
-@router.get("/", response_model=Post)
+@router.get("/")
 async def read_post(engine: AIOEngine = Depends(db.get_engine)):
     posts = await engine.find(Post)
     if not posts:
@@ -60,7 +62,7 @@ async def read_post(engine: AIOEngine = Depends(db.get_engine)):
 
 
 # Update - 게시글 수정
-@router.put("/{post_id}", response_model=Post)
+@router.put("/{post_id}")
 async def update_post(
     post_id: ObjectId, updated_post: Post, engine: AIOEngine = Depends(db.get_engine)
 ):
@@ -75,7 +77,7 @@ async def update_post(
 
 
 # Delete - 게시글 삭제
-@router.delete("/{post_id}", response_model=Post)
+@router.delete("/{post_id}")
 async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine)):
     post = await engine.find_one(Post, Post.id == post_id)
     if not post:

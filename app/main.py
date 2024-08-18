@@ -30,10 +30,11 @@ async def lifespan(app: FastAPI):
     # 미들웨어 정의
 
     # 라우터 정의
-    from app.routes import index, auth
+    from app.routes import index, auth, posts
 
     app.include_router(index.router)
     app.include_router(auth.router, tags=["Authentication"], prefix="/api")
+    app.include_router(posts.router, tags=["Post"], prefix="/api")
 
     # 정적 파일 제공 경로 매핑
     app.mount("/static", StaticFiles(directory=UPLOAD_DIRECTORY), name="static")
