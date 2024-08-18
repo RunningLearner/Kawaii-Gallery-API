@@ -27,8 +27,6 @@ async def lifespan(app: FastAPI):
 
     await db.connect()
 
-    # 레디스 이니셜라이즈
-
     # 미들웨어 정의
 
     # 라우터 정의
@@ -54,6 +52,3 @@ def create_app():
 
 
 app = create_app()
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)

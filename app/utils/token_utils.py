@@ -30,7 +30,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 
 # JWT에서 이메일을 추출하는 함수
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user_email(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, "SECRET_KEY", algorithms=["HS256"])
         user_email: str = payload.get("email")

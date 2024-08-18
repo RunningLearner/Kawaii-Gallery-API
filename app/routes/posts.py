@@ -5,7 +5,7 @@ from app.database.conn import db
 from app.main import UPLOAD_DIRECTORY
 import os
 from app.utils.user_utils import get_user_by_object_id
-from app.utils.token_utils import get_current_user
+from app.utils.token_utils import get_current_user_email
 
 router = APIRouter(prefix="/post")
 
@@ -17,7 +17,7 @@ async def create_post(
     content: str,
     image: UploadFile,
     engine: AIOEngine = Depends(db.get_engine),
-    user_email: str = Depends(get_current_user),
+    user_email: str = Depends(get_current_user_email),
 ):
     image_path = os.path.join(UPLOAD_DIRECTORY, image.filename)
 
@@ -25,7 +25,7 @@ async def create_post(
     with open(image_path, "wb") as buffer:
         buffer.write(image.file.read())
 
-    image_url = f"/static/{image.filename}"
+    image_url = f"/static/images/{image.filename}"
 
     user = await get_user_by_object_id(user_email)
 
