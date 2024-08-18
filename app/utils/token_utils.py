@@ -12,7 +12,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # 한국 표준시(KST) 타임존 정보 가져오기
-kst = pytz.timezone('Asia/Seoul')
+kst = pytz.timezone("Asia/Seoul")
+
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -24,8 +25,9 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    
+
     return encoded_jwt
+
 
 # JWT에서 이메일을 추출하는 함수
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -37,4 +39,3 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         return user_email
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-

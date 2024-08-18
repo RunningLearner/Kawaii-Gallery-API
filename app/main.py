@@ -13,6 +13,7 @@ UPLOAD_DIRECTORY = "./uploads"
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -36,10 +37,11 @@ async def lifespan(app: FastAPI):
     app.include_router(index.router)
     app.include_router(auth.router, tags=["Authentication"], prefix="/api")
 
-    # 정적 파일 제공 경로 매핑  
+    # 정적 파일 제공 경로 매핑
     app.mount("/static", StaticFiles(directory=UPLOAD_DIRECTORY), name="static")
     yield
     await db.close()
+
 
 def create_app():
     """
@@ -50,7 +52,7 @@ def create_app():
 
     return app
 
-    
+
 app = create_app()
 
 if __name__ == "__main__":

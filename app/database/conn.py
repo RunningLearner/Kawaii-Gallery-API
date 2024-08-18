@@ -3,6 +3,7 @@ from odmantic import AIOEngine
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
+
 class MongoDB:
     def __init__(self, app: FastAPI = None, **kwargs):
         self._client = None
@@ -39,7 +40,7 @@ class MongoDB:
             self._client.close()
             logging.info("MongoDB disconnected.")
 
-    def get_engine(self) -> AIOEngine :
+    def get_engine(self) -> AIOEngine:
         """
         Odmantic 엔진을 가져오는 함수
         :return:
