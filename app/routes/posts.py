@@ -8,33 +8,59 @@ from app.utils.user_utils import get_user_by_object_id
 from app.utils.token_utils import get_current_user_email
 
 router = APIRouter(prefix="/post")
+MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
 
+@router.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    return {"filename": file.filename}
 
 # Create - 게시글 생성
 @router.post("/")
 async def create_post(
     title: str = Form(...),
     content: str = Form(...),
-    image: UploadFile = File(...),
+    file: UploadFile = File(...),
     engine: AIOEngine = Depends(db.get_engine),
     user_email: str = Depends(get_current_user_email),
 ):
-    print("hi")
-    print(user_email)
-    image_path = os.path.join(UPLOAD_DIRECTORY, image.filename)
+    # 파일 MIME 타입 확인
+    file_type = file.content_type
+    print(file_type)
+    if file_type.startswith("video/"):
+        # 파일 크기 검사
+        contents = await file.read()  # 파일 전체를 읽습니다.
+        file_size = len(contents)  # 파일 크기를 확인합니다.
 
-    # 이미지 파일 저장
-    with open(image_path, "wb") as buffer:
-        buffer.write(image.file.read())
+        await file.seek(0)  # 파일 포인터를 다시 처음으로 이동
 
-    image_url = f"/static/images/{image.filename}"
+        if file_size > MAX_VIDEO_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Video file size exceeds the maximum limit of {MAX_VIDEO_SIZE // (1024 * 1024)}MB.",
+            )
 
+    # 중복된 파일명 처리하기
+    if file_type.startswith("image/"):
+        file_path = os.path.join(UPLOAD_DIRECTORY, "images", file.filename)
+        file_url = f"/static/images/{file.filename}"
+    elif file_type.startswith("video/"):
+        file_path = os.path.join(UPLOAD_DIRECTORY, "videos", file.filename)
+        file_url = f"/static/videos/{file.filename}"
+    else:
+        return {"error": "Unsupported file type"}
+
+    # 파일 저장
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+
+    # 작성자 정보
     user = await get_user_by_object_id(user_email)
 
     new_post = Post(
         title=title,
         content=content,
-        image_url=image_url,
+        file_url=file_url,
         user_id=user.id,
         nick_name=user.nick_name,
     )

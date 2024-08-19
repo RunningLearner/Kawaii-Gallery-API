@@ -6,5 +6,5 @@ class Post(Model):
     content: str
     nick_name: str  # 작성자의 아이디
     user_id: ObjectId
-    image_url: str  # 이미지 URL 필드 추가
+    file_url : str  # 파일 URL 필드 
     model_config = {"collection": "posts"}

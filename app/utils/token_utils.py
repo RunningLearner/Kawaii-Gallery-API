@@ -31,6 +31,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 # JWT에서 이메일을 추출하는 함수
 async def get_current_user_email(request: Request):
+    print("hi")
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Authorization header missing")
