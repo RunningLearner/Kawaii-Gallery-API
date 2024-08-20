@@ -23,7 +23,7 @@ async def kakao_login(
     if not email:
         raise HTTPException(status_code=400, detail="Email not provided by Kakao")
 
-    # 이메일 중복 체크
+    # 기존 회원 체크
     existing_user = await engine.find_one(User, {"$or": [{"email": email}]})
 
     if not existing_user:
@@ -37,8 +37,8 @@ async def kakao_login(
 
 @router.post("/register")
 async def register(
+    user_info: UserCreate,
     access_token: str = Body(..., embed=True),
-    nick_name: str = Body(..., embed=True),
     engine: AIOEngine = Depends(db.get_engine),
 ):
     email = get_user_email(access_token)
@@ -48,7 +48,7 @@ async def register(
 
     # 유저 생성
     user = User(
-        nick_name=nick_name,
+        nick_name=user_info.nick_name,
         email=email,
     )
 
