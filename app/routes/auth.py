@@ -38,13 +38,17 @@ async def kakao_login(
 @router.post("/register")
 async def register(
     user_info: UserCreate,
-    access_token: str = Body(..., embed=True),
     engine: AIOEngine = Depends(db.get_engine),
 ):
-    email = get_user_email(access_token)
+    email = get_user_email(user_info.access_token)
 
     if not email:
         raise HTTPException(status_code=400, detail="Email not provided by Kakao")
+
+    # 닉네임 중복 확인
+    user = await db.engine.find_one(User, User.nick_name == user_info.nick_name)
+    if user:
+        raise HTTPException(status_code=400, detail="중복된 닉네임입니다.")
 
     # 유저 생성
     user = User(

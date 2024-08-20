@@ -129,3 +129,35 @@ async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engi
         raise HTTPException(status_code=404, detail="Post not found")
     await engine.delete(post)
     return post
+
+# 게시글 좋아요
+@router.post("/{post_id}/like")
+async def like_post(
+    post_id: ObjectId,
+    engine: AIOEngine = Depends(db.get_engine),
+    user_email: str = Depends(get_current_user_email),  # 현재 사용자 이메일
+):
+    # 현재 사용자 가져오기
+    user = await get_user_by_object_id(user_email)
+
+    # 게시글 정보 가져오기
+    post = await engine.find_one(Post, Post.id == post_id)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    # 이미 좋아요를 눌렀는지 확인
+    if user.id in post.liked_by:
+        # 이미 좋아요를 눌렀다면, 좋아요 취소
+        post.liked_by.remove(user.id)
+        post.likes_count -= 1
+        liked = False
+    else:
+        # 좋아요 추가
+        post.liked_by.append(user.id)
+        post.likes_count += 1
+        liked = True
+
+    await engine.save(post)
+
+    return {"liked": liked, "post": post}

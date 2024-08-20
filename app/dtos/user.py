@@ -2,4 +2,5 @@ from pydantic import BaseModel
 
 
 class UserCreate(BaseModel):
-    email: str
+    nick_name: str
+    access_token: str
