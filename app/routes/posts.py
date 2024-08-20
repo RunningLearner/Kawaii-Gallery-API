@@ -6,7 +6,7 @@ from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
 from app.main import UPLOAD_DIRECTORY
 import os
-from app.schemas.post import PostUpdate
+from app.dtos.post import PostUpdate
 from app.utils.user_utils import get_user_by_object_id
 from app.utils.token_utils import get_current_user_email
 
