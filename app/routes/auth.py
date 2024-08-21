@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from odmantic import AIOEngine
 from app.database.conn import db
+from app.database.models.token import FCMToken
 from app.database.models.user import User
+from app.dtos.auth import FCMTokenCreate
 from app.dtos.user import UserCreate
-from app.utils.token_utils import create_access_token
+from app.utils.token_utils import create_access_token, get_current_user_email
 import requests
 
 
@@ -27,13 +29,17 @@ async def kakao_login(
     existing_user = await engine.find_one(User, {"$or": [{"email": email}]})
 
     if not existing_user:
-        return {"message": "회원가입이 필요합니다. 닉네임을 입력해주세요.", "access_token": access_token}
+        return {
+            "message": "회원가입이 필요합니다. 닉네임을 입력해주세요.",
+            "access_token": access_token,
+        }
 
     # JWT 생성
     jwt_access_token = create_access_token(data={"email": str(email)})
 
     # 회원인지 확인 후 토큰 발급
     return {"access_token": jwt_access_token}
+
 
 @router.post("/register")
 async def register(
@@ -62,6 +68,40 @@ async def register(
     jwt_access_token = create_access_token(data={"email": str(email)})
 
     return {"access_token": jwt_access_token}
+
+
+@router.post("/fcmtoken")
+async def create_fcm_token(
+    token_info: FCMTokenCreate,
+    engine: AIOEngine = Depends(db.get_engine),
+    user_email: str = Depends(get_current_user_email),
+):
+    # 사용자 조회
+    user = await engine.find_one(User, User.email == user_email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 기존 FCM 토큰 확인 
+    existing_token = await engine.find_one(
+        FCMToken,
+        FCMToken.user_id == user.id,
+        FCMToken.device_type == token_info.device_type,
+    )
+    # 있다면 토큰 정보만 업데이트
+    if existing_token:
+        existing_token.fcm_token = token_info.fcm_token
+        await engine.save(existing_token)
+    else:
+        # 새로운 FCM 토큰 생성
+        new_token = FCMToken(
+            user_id=user.id,
+            fcm_token=token_info.fcm_token,
+            device_type=token_info.device_type,
+        )
+        await engine.save(new_token)
+
+    return {"message": "FCM token saved successfully"}
+
 
 def get_user_email(access_token: str) -> str:
     # 액세스 토큰으로 사용자 정보 요청
