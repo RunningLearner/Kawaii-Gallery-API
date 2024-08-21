@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from typing import List
 from app.database.models.post import Post
 from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
@@ -25,44 +25,52 @@ async def create_post(
     title: str = Form(...),
     content: str = Form(...),
     tags: List[str] = Form(...),
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     engine: AIOEngine = Depends(db.get_engine),
     user_email: str = Depends(get_current_user_email),
 ):
-    # 파일 MIME 타입 확인
-    file_type = file.content_type
+     # 이미지 파일의 개수 제한
+    image_files = [file for file in files if file.content_type.startswith("image/")]
+    if len(image_files) > 5:
+        raise HTTPException(status_code=400, detail="최대 5개의 이미지 파일만 업로드할 수 있습니다.")
 
-    if file_type.startswith("video/"):
-        # 파일 크기 검사
-        contents = await file.read()  # 파일 전체를 읽습니다.
-        file_size = len(contents)  # 파일 크기를 확인합니다.
+    file_urls = []
+    for file in files:
+        # 파일 MIME 타입 확인
+        file_type = file.content_type
 
-        await file.seek(0)  # 파일 포인터를 다시 처음으로 이동
+        if file_type.startswith("video/"):
+            # 파일 크기 검사
+            contents = await file.read()
+            file_size = len(contents)
+            await file.seek(0)  # 파일 포인터를 다시 처음으로 이동
 
-        if file_size > MAX_VIDEO_SIZE:
-            raise HTTPException(
-                status_code=413,
-                detail=f"Video file size exceeds the maximum limit of {MAX_VIDEO_SIZE // (1024 * 1024)}MB.",
-            )
+            if file_size > MAX_VIDEO_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Video file size exceeds the maximum limit of {MAX_VIDEO_SIZE // (1024 * 1024)}MB.",
+                )
 
-    # 이름 중복 제거 위한 시간 접두사
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    new_filename = f"{timestamp}_{file.filename}"
+        # 이름 중복 제거 위한 시간 접두사
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        new_filename = f"{timestamp}_{file.filename}"
 
-    # 중복된 파일명 처리하기
-    if file_type.startswith("image/"):
-        file_path = os.path.join(UPLOAD_DIRECTORY, "images", new_filename)
-        file_url = f"/static/images/{new_filename}"
-    elif file_type.startswith("video/"):
-        file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
-        file_url = f"/static/videos/{new_filename}"
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
+        # 중복된 파일명 처리하기
+        if file_type.startswith("image/"):
+            file_path = os.path.join(UPLOAD_DIRECTORY, "images", new_filename)
+            file_url = f"/static/images/{new_filename}"
+        elif file_type.startswith("video/"):
+            file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
+            file_url = f"/static/videos/{new_filename}"
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
 
-    # 파일 저장
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
+        # 파일 저장
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+
+        file_urls.append(file_url)
 
     # 작성자 정보
     user = await get_user_by_object_id(user_email)
