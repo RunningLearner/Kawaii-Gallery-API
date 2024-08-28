@@ -4,7 +4,7 @@ from app.database.models.post import Post
 from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
-from app.main import UPLOAD_DIRECTORY
+from app.utils.settings import UPLOAD_DIRECTORY
 import os
 from app.dtos.post import PostUpdate
 from app.utils.user_utils import get_user_by_object_id

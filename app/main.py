@@ -4,14 +4,11 @@ import uvicorn
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from app.utils.settings import UPLOAD_DIRECTORY
 from app.database.conn import db
 from app.common.config import conf
+from app.routes import index, auth, posts
 from contextlib import asynccontextmanager
-
-# Static 파일 경로 설정
-UPLOAD_DIRECTORY = "./uploads"
-if not os.path.exists(UPLOAD_DIRECTORY):
-    os.makedirs(UPLOAD_DIRECTORY)
 
 
 @asynccontextmanager
@@ -30,7 +27,6 @@ async def lifespan(app: FastAPI):
     # 미들웨어 정의
 
     # 라우터 정의
-    from app.routes import index, auth, posts
 
     app.include_router(index.router)
     app.include_router(auth.router, tags=["Authentication"], prefix="/api")
