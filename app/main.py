@@ -9,7 +9,7 @@ from app.database.conn import db
 from app.common.config import conf
 from app.routes import index, auth, posts
 from contextlib import asynccontextmanager
-
+from app.utils.like_notification import send_like_notification_test
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,5 +47,5 @@ def create_app():
 
     return app
 
-
 app = create_app()
+# send_like_notification_test()
