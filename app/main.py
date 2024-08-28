@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     app.include_router(index.router)
     app.include_router(auth.router, tags=["Authentication"], prefix="/api")
     app.include_router(posts.router, tags=["Post"], prefix="/api")
-
+    
     # 정적 파일 제공 경로 매핑
     app.mount("/static", StaticFiles(directory=UPLOAD_DIRECTORY), name="static")
     yield
@@ -49,3 +49,12 @@ def create_app():
 
 app = create_app()
 # send_like_notification_test()
+@app.get("/test-notification")
+def test_notification_endpoint():
+    try:
+        # 테스트 알림 함수 실행
+        send_like_notification_test()
+        return {"status": "Notification sent successfully"}
+    except Exception as e:
+        # 예외 발생 시 에러 메시지 반환
+        print(status_code=500, detail=str(e))

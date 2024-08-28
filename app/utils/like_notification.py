@@ -51,7 +51,7 @@ async def send_like_notification(user_id: ObjectId, post_title: str):
 def send_like_notification_test():
     print("test started!")
     # FCM 토큰 없이 서버 요청만 테스트하기 위해 임의의 문자열을 사용
-    fake_token = "fake_token_for_testing"
+    fake_token = "c2OcCu9QTJKW6JIXYJLcSr:APA91bGhBzbqqGBivXlnpn3Oa4GBpG1jGxfYhElBshN_RFAYgbESmpq65P5KoI9dUO3yW_M6gKRCJ1c5b6IYcBPHUkD5ZrXub0kHDHaqIIC6jR-qNHqan3QPA7KXyrLJGs4iE_AkQEJ0"
 
     # FCM 메시지 페이로드 구성
     notification_data = {
