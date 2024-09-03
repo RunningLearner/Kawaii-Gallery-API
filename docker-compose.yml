@@ -8,6 +8,7 @@ services:
       - "8000:8000"
     depends_on:
       - mongodb
+      - redis
     volumes:
       - app_data:/app # 명명 볼륨 사용
 
@@ -18,6 +19,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db # 명명 볼륨 사용
+  redis:
+      image: redis:latest  # Redis 이미지
+      container_name: redis
+      ports:
+        - "6379:6379"  # Redis 기본 포트
 
 volumes:
   app_data: # app 서비스의 명명 볼륨
