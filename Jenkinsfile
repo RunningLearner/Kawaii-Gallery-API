@@ -20,8 +20,11 @@ pipeline {
                     // 기존 컨테이너 중지 및 제거 (존재하는 경우)
                     sh 'docker-compose down'
                     
-                    // Docker Compose로 애플리케이션 빌드 및 강제 재생성
-                    sh 'docker-compose -f $COMPOSE_FILE up --build --force-recreate --no-cache -d'
+                    // Docker 빌드 시 캐시를 사용하지 않고 빌드
+                    sh 'docker-compose build --no-cache'
+
+                    // 강제로 컨테이너를 재생성하여 최신 코드 반영
+                    sh 'docker-compose up --force-recreate -d'
                 }
             }
         }
