@@ -20,14 +20,14 @@ class Config:
 class LocalConfig(Config):
     PROJ_RELOAD: bool = True
     DB_URL: str = "mongodb://localhost:27017"
-    DB_NAME: str = "kawaii_gallery_test"
+    DB_NAME: str = "kawaii_gallery"
 
 
 @dataclass
 class ProdConfig(Config):
     PROJ_RELOAD: bool = False
-    DB_URL: str = "CD에서 채워주세요"
-    DB_NAME: str = "CD에서 채워주세요"
+    DB_URL: str = "mongodb://mongodb:27017"
+    DB_NAME: str = "kawaii_gallery"
 
 
 def conf():

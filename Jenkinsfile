@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         COMPOSE_FILE = 'docker-compose.yml' // Docker Compose 파일 이름
+        API_ENV = 'prod' // 환경변수
     }
     stages {
         stage('Checkout') {
