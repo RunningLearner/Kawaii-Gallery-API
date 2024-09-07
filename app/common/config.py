@@ -36,5 +36,6 @@ def conf():
     :return:
     """
     config = dict(prod=ProdConfig(), local=LocalConfig())
-    print(f"환경변수 : {environ.get("API_ENC", "local")}")
+    env = environ.get("API_ENC", "local")
+    print(f"환경변수 : {env}")
     return config.get(environ.get("API_ENC", "local"))
