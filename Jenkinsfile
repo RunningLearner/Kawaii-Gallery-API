@@ -21,7 +21,7 @@ pipeline {
                     sh 'docker-compose down'
                     
                     // Docker Compose로 애플리케이션 빌드 및 강제 재생성
-                    sh 'docker-compose -f $COMPOSE_FILE up --build --force-recreate -d'
+                    sh 'docker-compose -f $COMPOSE_FILE up --build --force-recreate --no-cache -d'
                 }
             }
         }
