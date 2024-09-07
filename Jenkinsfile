@@ -11,14 +11,6 @@ pipeline {
                 git branch: 'main', credentialsId: 'github_access_token', url: 'https://github.com/RunningLearner/Kawaii-Gallery-API.git'
             }
         }
-        stage('Verify File') {
-            steps {
-                script {
-                    // 특정 파일의 내용을 출력하여 최신 상태 확인
-                    sh 'cat ./app/main.py'  // 파일 경로를 지정하여 해당 파일의 내용을 출력
-                }
-            }
-        }
         stage('Build and Deploy') {
             steps {
                 script {
