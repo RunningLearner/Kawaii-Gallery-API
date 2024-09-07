@@ -11,8 +11,6 @@ services:
     depends_on:
       - mongodb
       - redis
-    volumes:
-      - ./app:/app # 명명 볼륨 사용
 
   mongodb:
     image: mongo:latest
