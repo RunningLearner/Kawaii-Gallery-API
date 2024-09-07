@@ -1,4 +1,5 @@
 from dataclasses import asdict
+import logging
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
@@ -16,9 +17,15 @@ async def lifespan(app: FastAPI):
     """
     FastAPI 애플리케이션의 수명 주기를 관리하는 lifespan 이벤트 핸들러
     """
+    logging.basicConfig(
+        level=logging.INFO,  # 로그 레벨 설정
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    
     c = conf()
     conf_dict = asdict(c)
-    print(conf_dict)
+    logging.info(conf_dict)
     # 데이터 베이스 이니셜라이즈
     db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
     await db.connect()
