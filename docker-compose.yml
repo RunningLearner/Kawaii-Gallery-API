@@ -12,7 +12,7 @@ services:
       - mongodb
       - redis
     volumes:
-      - app_data:/app # 명명 볼륨 사용
+      - ./app:/app # 명명 볼륨 사용
 
   mongodb:
     image: mongo:latest
@@ -28,5 +28,4 @@ services:
         - "6379:6379"  # Redis 기본 포트
 
 volumes:
-  app_data: # app 서비스의 명명 볼륨
   mongo_data: # mongodb 서비스의 명명 볼륨
