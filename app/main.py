@@ -22,10 +22,11 @@ async def lifespan(app: FastAPI):
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
-    
+
     c = conf()
     conf_dict = asdict(c)
     logging.info(conf_dict)
+    print(conf_dict)
     # 데이터 베이스 이니셜라이즈
     db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
     await db.connect()
