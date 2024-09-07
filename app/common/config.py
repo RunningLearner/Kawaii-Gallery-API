@@ -20,7 +20,7 @@ class Config:
 class LocalConfig(Config):
     PROJ_RELOAD: bool = True
     DB_URL: str = "mongodb://localhost:27017"
-    DB_NAME: str = "kawaii_gallery"
+    DB_NAME: str = "kawaii_gallery_test"
 
 
 @dataclass
@@ -36,6 +36,6 @@ def conf():
     :return:
     """
     config = dict(prod=ProdConfig(), local=LocalConfig())
-    env = environ.get("API_ENC", "local")
+    env = environ.get("API_ENV", "local")
     print(f"환경변수 : {env}")
-    return config.get(environ.get("API_ENC", "local"))
+    return config.get(environ.get("API_ENV", "local"))
