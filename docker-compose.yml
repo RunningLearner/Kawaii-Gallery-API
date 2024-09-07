@@ -4,6 +4,8 @@ services:
   app:
     build: .
     container_name: fastapi_app
+    environment:
+      - API_ENV=${API_ENV}  # 환경 변수 설정
     ports:
       - "8000:8000"
     depends_on:
