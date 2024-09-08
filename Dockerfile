@@ -3,6 +3,7 @@ FROM python:3.9-slim
 
 # 환경 변수 설정: Python 출력 버퍼링 해제
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app  # PYTHONPATH 설정
 
 # 작업 디렉토리 설정
 WORKDIR /app
