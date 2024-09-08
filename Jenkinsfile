@@ -16,6 +16,9 @@ pipeline {
                 script {
                     // .env 파일 생성 (Jenkins 환경 변수에서 값 설정)
                     writeFile file: '.env', text: "API_ENV=${API_ENV}\n"
+                    
+                    // 호스트의 현재 작업 디렉토리 확인
+                    sh 'pwd'
 
                     // 기존 컨테이너 중지 및 제거 (볼륨 포함) 
                     // TODO: 프로덕션 단계에서는 볼륨 제거 옵션 삭제하기
