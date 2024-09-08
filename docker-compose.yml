@@ -11,6 +11,9 @@ services:
     depends_on:
       - mongodb
       - redis
+    volumes:
+      - ./app:/app/app  # 호스트의 app 폴더를 컨테이너의 /app에 연결
+      - ./uploads:/app/uploads  # 호스트의 uploads 폴더를 컨테이너의 /app/uploads에 연결
 
   mongodb:
     image: mongo:latest
