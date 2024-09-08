@@ -17,7 +17,7 @@ services:
       - ./uploads:/app/uploads  # 호스트의 uploads 폴더를 컨테이너의 /app/uploads에 연결
     # 경로 확인 후 uvicorn 실행
     command: >
-      sh -c "ls /app/app && echo 'Current directory: $(pwd)' && uvicorn app.main:app --host 0.0.0.0 --port 8000" 
+      sh -c 'ls /app/app && echo "Current directory: $(pwd)" && uvicorn app.main:app --host 0.0.0.0 --port 8000'
 
   mongodb:
     image: mongo:latest
