@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
@@ -34,16 +35,15 @@ async def get_current_user_email(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Authorization header missing")
-    print(f"auth_header:{auth_header}")
     token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-    print(token)
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"payload :: {payload}")
         user_email: str = payload.get("email")
         if user_email is None:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         return user_email
-    except JWTError:
-        print(JWTError)
+    except JWTError as e:
+        logging.error(f"JWTError occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=401, detail="Invalid token")
