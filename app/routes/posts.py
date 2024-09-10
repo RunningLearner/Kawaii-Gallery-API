@@ -63,7 +63,7 @@ async def create_post(
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
             file_url = f"/static/videos/{new_filename}"
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file type")
+            raise HTTPException(status_code=400, detail=f"{file_type} is an unsupported file type")
 
         # 파일 저장
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
