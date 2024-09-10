@@ -101,6 +101,7 @@ async def create_fcm_token(
 
 
 def get_user_email(access_token: str) -> str:
+    print(f"access_token from dundun :{access_token}")
     # 액세스 토큰으로 사용자 정보 요청
     user_info_response = requests.get(
         user_info_url_kakao,
@@ -109,7 +110,8 @@ def get_user_email(access_token: str) -> str:
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
         },
     )
-    print(f"status code from kakao :{user_info_response.status_code}")
+    print(f"statuscode from kakao :{user_info_response.status_code}")
+
     if user_info_response.status_code != 200:
         raise HTTPException(
             status_code=user_info_response.status_code, detail="Failed to get user info"
