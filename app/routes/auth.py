@@ -29,10 +29,7 @@ async def kakao_login(
     existing_user = await engine.find_one(User, {"$or": [{"email": email}]})
 
     if not existing_user:
-        return {
-            "message": "회원가입이 필요합니다. 닉네임을 입력해주세요.",
-            "access_token": access_token,
-        }
+        raise HTTPException(status_code=404, detail="회원가입이 필요합니다. 닉네임을 입력해주세요.")
 
     # JWT 생성
     jwt_access_token = create_access_token(data={"email": str(email)})
