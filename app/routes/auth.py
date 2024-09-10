@@ -109,7 +109,7 @@ def get_user_email(access_token: str) -> str:
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
         },
     )
-
+    print(f"status code from kakao :{user_info_response.status_code}")
     if user_info_response.status_code != 200:
         raise HTTPException(
             status_code=user_info_response.status_code, detail="Failed to get user info"
