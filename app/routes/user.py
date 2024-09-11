@@ -66,7 +66,7 @@ async def update_user(
 
 
 # Delete - 사용자 삭제
-@router.delete("/delete/{user_id}")
+@router.delete("/{user_id}")
 async def delete_user(
     user_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
