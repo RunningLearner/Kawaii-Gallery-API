@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import List
 from app.database.models.post import Post
 from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
@@ -78,13 +79,17 @@ async def create_post(
     new_post = Post(
         title=title,
         content=content,
-        file_url=file_url,
+        file_urls=file_urls,
         tags=tags,
         user_id=user.id,
         nick_name=user.nick_name,
     )
 
     new_post = await engine.save(new_post)
+
+    # 로그 출력
+    logging.info(f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}, 파일 URL - {new_post.file_urls}")
+
     return new_post
 
 

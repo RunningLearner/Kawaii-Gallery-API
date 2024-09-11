@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
+import logging
 from odmantic import AIOEngine
 from app.database.conn import db
 from app.database.models.token import FCMToken
@@ -49,7 +50,7 @@ async def register(
         raise HTTPException(status_code=400, detail="Email not provided by Kakao")
 
     # 닉네임 중복 확인
-    user = await db.engine.find_one(User, User.nick_name == user_info.nick_name)
+    user = await engine.find_one(User, User.nick_name == user_info.nick_name)
     if user:
         raise HTTPException(status_code=400, detail="중복된 닉네임입니다.")
 
@@ -60,6 +61,9 @@ async def register(
     )
 
     await engine.save(user)
+
+    # 유저 생성 로그
+    logging.info(f"유저 생성 완료: 닉네임 - {user.nick_name}, 이메일 - {user.email}")
 
     # JWT 생성
     jwt_access_token = create_access_token(data={"email": str(email)})
