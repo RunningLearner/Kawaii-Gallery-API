@@ -75,7 +75,9 @@ async def create_post(
 
     # 작성자 정보
     user = await engine.find_one(User, User.id == user_id)
-
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다.")
+    
     new_post = Post(
         title=title,
         content=content,
