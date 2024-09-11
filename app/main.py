@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.utils.settings import UPLOAD_DIRECTORY
 from app.database.conn import db
 from app.common.config import conf
-from app.routes import index, auth, posts
+from app.routes import index, auth, posts, user
 from contextlib import asynccontextmanager
 from app.utils.like_notification import send_like_notification_test
 
@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     app.include_router(index.router)
     app.include_router(auth.router, tags=["Authentication"], prefix="/api")
     app.include_router(posts.router, tags=["Post"], prefix="/api")
+    app.include_router(user.router, tags=["User"], prefix="/api")
 
     # 정적 파일 제공 경로 매핑
     app.mount("/static", StaticFiles(directory=UPLOAD_DIRECTORY), name="static")
