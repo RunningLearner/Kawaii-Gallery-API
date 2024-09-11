@@ -6,7 +6,7 @@ from app.database.models.token import FCMToken
 from app.database.models.user import User
 from app.dtos.auth import FCMTokenCreate
 from app.dtos.user import UserCreate
-from app.utils.token_utils import create_access_token, get_current_user_email
+from app.utils.token_utils import create_access_token, get_current_user_id
 import requests
 
 
@@ -30,10 +30,12 @@ async def kakao_login(
     existing_user = await engine.find_one(User, {"$or": [{"email": email}]})
 
     if not existing_user:
-        raise HTTPException(status_code=404, detail="회원가입이 필요합니다. 닉네임을 입력해주세요.")
+        raise HTTPException(
+            status_code=404, detail="회원가입이 필요합니다. 닉네임을 입력해주세요."
+        )
 
     # JWT 생성
-    jwt_access_token = create_access_token(data={"email": str(email)})
+    jwt_access_token = create_access_token(data={"user_id": str(existing_user.id)})
 
     # 회원인지 확인 후 토큰 발급
     return {"access_token": jwt_access_token}
@@ -66,7 +68,7 @@ async def register(
     logging.info(f"유저 생성 완료: 닉네임 - {user.nick_name}, 이메일 - {user.email}")
 
     # JWT 생성
-    jwt_access_token = create_access_token(data={"email": str(email)})
+    jwt_access_token = create_access_token(data={"user_id": str(user.id)})
 
     return {"access_token": jwt_access_token}
 
@@ -75,14 +77,14 @@ async def register(
 async def create_fcm_token(
     token_info: FCMTokenCreate,
     engine: AIOEngine = Depends(db.get_engine),
-    user_email: str = Depends(get_current_user_email),
+    user_id: str = Depends(get_current_user_id),
 ):
     # 사용자 조회
-    user = await engine.find_one(User, User.email == user_email)
+    user = await engine.find_one(User, User.id == user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 기존 FCM 토큰 확인 
+    # 기존 FCM 토큰 확인
     existing_token = await engine.find_one(
         FCMToken,
         FCMToken.user_id == user.id,

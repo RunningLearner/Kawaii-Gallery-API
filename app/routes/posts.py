@@ -9,15 +9,10 @@ from app.utils.settings import UPLOAD_DIRECTORY
 import os
 from app.dtos.post import PostUpdate
 from app.utils.user_utils import get_user_by_object_id
-from app.utils.token_utils import get_current_user_email
+from app.utils.token_utils import get_current_user_id
 
 router = APIRouter(prefix="/post")
 MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
-
-
-@router.post("/uploadfile/")
-async def create_upload_file(file: UploadFile):
-    return {"filename": file.filename}
 
 
 # Create - 게시글 생성
@@ -28,12 +23,14 @@ async def create_post(
     tags: List[str] = Form(...),
     files: List[UploadFile] = File(...),
     engine: AIOEngine = Depends(db.get_engine),
-    user_email: str = Depends(get_current_user_email),
+    user_id: str = Depends(get_current_user_id),
 ):
-     # 이미지 파일의 개수 제한
+    # 이미지 파일의 개수 제한
     image_files = [file for file in files if file.content_type.startswith("image/")]
     if len(image_files) > 5:
-        raise HTTPException(status_code=400, detail="최대 5개의 이미지 파일만 업로드할 수 있습니다.")
+        raise HTTPException(
+            status_code=400, detail="최대 5개의 이미지 파일만 업로드할 수 있습니다."
+        )
 
     file_urls = []
     for file in files:
@@ -64,7 +61,9 @@ async def create_post(
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
             file_url = f"/static/videos/{new_filename}"
         else:
-            raise HTTPException(status_code=400, detail=f"{file_type} is an unsupported file type")
+            raise HTTPException(
+                status_code=400, detail=f"{file_type} is an unsupported file type"
+            )
 
         # 파일 저장
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -74,7 +73,7 @@ async def create_post(
         file_urls.append(file_url)
 
     # 작성자 정보
-    user = await get_user_by_object_id(user_email)
+    user = await get_user_by_object_id(user_id)
 
     new_post = Post(
         title=title,
@@ -88,7 +87,9 @@ async def create_post(
     new_post = await engine.save(new_post)
 
     # 로그 출력
-    logging.info(f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}, 파일 URL - {new_post.file_urls}")
+    logging.info(
+        f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}, 파일 URL - {new_post.file_urls}"
+    )
 
     return new_post
 
@@ -143,12 +144,13 @@ async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engi
     await engine.delete(post)
     return post
 
+
 # 게시글 좋아요
 @router.post("/{post_id}/like")
 async def like_post(
     post_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
-    user_email: str = Depends(get_current_user_email),  # 현재 사용자 이메일
+    user_email: str = Depends(get_current_user_id),  # 현재 사용자 이메일
 ):
     # 현재 사용자 가져오기
     user = await get_user_by_object_id(user_email)

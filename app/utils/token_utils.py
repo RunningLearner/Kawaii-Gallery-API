@@ -31,7 +31,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 
 # JWT에서 이메일을 추출하는 함수
-async def get_current_user_email(request: Request):
+async def get_current_user_id(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -39,11 +39,11 @@ async def get_current_user_email(request: Request):
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"payload :: {payload}")
-        user_email: str = payload.get("email")
-        if user_email is None:
+        print(f"payload : {payload}")
+        user_id: str = payload.get("user_id")
+        if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        return user_email
+        return user_id
     except JWTError as e:
         logging.error(f"JWTError occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=401, detail="Invalid token")
