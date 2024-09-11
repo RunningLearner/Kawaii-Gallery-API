@@ -5,6 +5,7 @@ from app.database.models.post import Post
 from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
+from app.database.models.user import User
 from app.utils.settings import UPLOAD_DIRECTORY
 import os
 from app.dtos.post import PostUpdate
@@ -73,7 +74,7 @@ async def create_post(
         file_urls.append(file_url)
 
     # 작성자 정보
-    user = await get_user_by_object_id(user_id)
+    user = await engine.find_one(User, User.id == user_id)
 
     new_post = Post(
         title=title,
