@@ -9,7 +9,8 @@ from app.dtos.user import UserCreate
 from app.utils.token_utils import create_access_token, get_current_user_id
 import requests
 
-
+# 로거 설정
+logger = logging.getLogger(__name__)
 user_info_url_kakao = "https://kapi.kakao.com/v2/user/me"
 
 router = APIRouter(prefix="/auth")
@@ -65,7 +66,7 @@ async def register(
     await engine.save(user)
 
     # 유저 생성 로그
-    logging.info(f"유저 생성 완료: 닉네임 - {user.nick_name}, 이메일 - {user.email}")
+    logger.info(f"유저 생성 완료: 닉네임 - {user.nick_name}, 이메일 - {user.email}")
 
     # JWT 생성
     jwt_access_token = create_access_token(data={"user_id": str(user.id)})

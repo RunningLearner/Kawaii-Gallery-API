@@ -3,6 +3,9 @@ from odmantic import AIOEngine
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
+# 로거 설정
+logger = logging.getLogger(__name__)
+
 
 class MongoDB:
     def __init__(self, app: FastAPI = None, **kwargs):
@@ -29,7 +32,7 @@ class MongoDB:
         """
         self._client = AsyncIOMotorClient(self.database_url)
         self._engine = AIOEngine(client=self._client, database=self.db_name)
-        logging.info(f"MongoDB connected.{self.database_url}")
+        logger.info(f"MongoDB connected.{self.database_url}")
         print(f"MongoDB connected.{self.db_name} {self.database_url}")
 
     async def close(self):
@@ -38,7 +41,7 @@ class MongoDB:
         """
         if self._client:
             self._client.close()
-            logging.info("MongoDB disconnected.")
+            logger.info("MongoDB disconnected.")
 
     def get_engine(self) -> AIOEngine:
         """

@@ -7,6 +7,8 @@ from app.utils.token_utils import get_current_user_id
 
 import logging
 
+# 로거 설정
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/user")
 
 
@@ -60,7 +62,7 @@ async def update_user(
 
     await engine.save(user)
 
-    logging.info(f"유저 업데이트 완료: {user.nick_name} ({user.email})")
+    logger.info(f"유저 업데이트 완료: {user.nick_name} ({user.email})")
 
     return {"msg": "유저 정보가 업데이트되었습니다."}
 
@@ -77,6 +79,6 @@ async def delete_user(
 
     await engine.delete(user)
 
-    logging.info(f"유저 삭제 완료: {user.nick_name} ({user.email})")
+    logger.info(f"유저 삭제 완료: {user.nick_name} ({user.email})")
 
     return {"msg": "유저가 삭제되었습니다."}

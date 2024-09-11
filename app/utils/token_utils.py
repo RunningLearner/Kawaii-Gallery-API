@@ -3,9 +3,11 @@ import logging
 from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
+from odmantic import ObjectId
 import pytz
 
-
+# 로거 설정
+logger = logging.getLogger(__name__)
 SECRET_KEY = "your-secret-key"  # 실제 운영에서는 환경 변수로 관리하세요
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -31,7 +33,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 
 # JWT에서 이메일을 추출하는 함수
-async def get_current_user_id(request: Request):
+async def get_current_user_id(request: Request) -> ObjectId:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Authorization header missing")
@@ -43,7 +45,7 @@ async def get_current_user_id(request: Request):
         user_id: str = payload.get("user_id")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        return user_id
+        return ObjectId(user_id)
     except JWTError as e:
-        logging.error(f"JWTError occurred: {str(e)}", exc_info=True)
+        logger.error(f"JWTError occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=401, detail="Invalid token")

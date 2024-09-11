@@ -24,7 +24,7 @@ async def create_post(
     tags: List[str] = Form(...),
     files: List[UploadFile] = File(...),
     engine: AIOEngine = Depends(db.get_engine),
-    user_id: str = Depends(get_current_user_id),
+    user_id: ObjectId = Depends(get_current_user_id),
 ):
     # 이미지 파일의 개수 제한
     image_files = [file for file in files if file.content_type.startswith("image/")]
