@@ -15,9 +15,14 @@ router = APIRouter(prefix="/user")
 # Read - 사용자 조회
 @router.get("/{user_id}")
 async def get_user_by_id(
-    user_id: str,
+    user_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
 ):
+    """
+    이 엔드포인트는 아이템을 path parameter를 통해 사용자를 조회합니다.
+
+    - **user_id**: 조회할 사용자의 ObjectId
+    """
     user = await engine.find_one(User, User.id == user_id)
     if not user:
         raise HTTPException(
@@ -32,6 +37,11 @@ async def get_user_by_id(
 async def get_user(
     engine: AIOEngine = Depends(db.get_engine),
 ):
+    """
+    이 엔드포인트는 아이템을 path parameter를 통해 사용자를 조회합니다.
+
+    - **user_id**: 조회할 사용자의 ObjectId
+    """
     users = await engine.find(User)
     if not users:
         raise HTTPException(status_code=404, detail=f"사용자가 존재하지 않습니다.")

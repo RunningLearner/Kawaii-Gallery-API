@@ -1,17 +1,20 @@
 from datetime import datetime
 import logging
 from typing import List
-from app.database.models.post import Post
 from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
+from app.database.models.post import Post
 from app.database.models.user import User
+from app.database.models.comment import Comment
 from app.utils.settings import UPLOAD_DIRECTORY
 import os
-from app.dtos.post import PostUpdate
+from app.dtos.post import CreateComment, PostUpdate
 from app.utils.user_utils import get_user_by_object_id
 from app.utils.token_utils import get_current_user_id
 
+# 로거 설정
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/post")
 MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
 
@@ -76,8 +79,10 @@ async def create_post(
     # 작성자 정보
     user = await engine.find_one(User, User.id == user_id)
     if user is None:
-        raise HTTPException(status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다.")
-    
+        raise HTTPException(
+            status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
+        )
+
     new_post = Post(
         title=title,
         content=content,
@@ -90,7 +95,7 @@ async def create_post(
     new_post = await engine.save(new_post)
 
     # 로그 출력
-    logging.info(
+    logger.info(
         f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}, 파일 URL - {new_post.file_urls}"
     )
 
@@ -141,6 +146,11 @@ async def update_post(
 # Delete - 게시글 삭제
 @router.delete("/{post_id}")
 async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine)):
+    """
+    이 엔드포인트는 특정 게시글을 삭제합니다.
+
+    - **post_id**: 삭제될 게시글의 ObjectId
+    """
     post = await engine.find_one(Post, Post.id == post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -153,16 +163,21 @@ async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engi
 async def like_post(
     post_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
-    user_email: str = Depends(get_current_user_id),  # 현재 사용자 이메일
+    user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 이메일
 ):
+    """
+    이 엔드포인트는 특정 게시글에 좋아요를 생성합니다.
+
+    - **post_id**: 좋아요가 추가될 게시글의 ObjectId
+    """
     # 현재 사용자 가져오기
-    user = await get_user_by_object_id(user_email)
+    user = await get_user_by_object_id(user_id)
 
     # 게시글 정보 가져오기
     post = await engine.find_one(Post, Post.id == post_id)
 
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
     # 이미 좋아요를 눌렀는지 확인
     if user.id in post.liked_by:
@@ -179,3 +194,59 @@ async def like_post(
     await engine.save(post)
 
     return {"liked": liked, "post": post}
+
+
+@router.get("/{post_id}/comments")
+async def read_post(
+    post_id: ObjectId,
+    engine: AIOEngine = Depends(db.get_engine),
+):
+    """
+    이 엔드포인트는 특정 게시글의 모든 댓글 목록을 반환합니다.
+
+    - **post_id**: 댓글들을 가져올 게시글의 ObjectId
+    """
+    # 게시글 ID로 가져오기
+    post = await engine.find_one(Post, Post.id == post_id)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
+
+    # 게시글 ID를 가지는 모든 댓글 가져오기
+    comments = await engine.find(Comment, Comment.post_id == post_id)
+
+    return comments
+
+
+@router.post("/{post_id}/comment")
+async def read_post(
+    post_id: ObjectId,
+    comment: CreateComment,
+    engine: AIOEngine = Depends(db.get_engine),
+    user_id: ObjectId = Depends(get_current_user_id),
+):
+    """
+    이 엔드포인트는 특정 게시글에 댓글을 생성합니다.
+
+    - **post_id**: 댓글이 생성될 게시글의 ObjectId
+    """
+    # 게시글 ID로 가져오기
+    post = await engine.find_one(Post, Post.id == post_id)
+
+    if not post:
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
+
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+
+    # 댓글 생성
+    new_comment = Comment(
+        **comment.model_dump(),
+        nick_name=user.nick_name,
+        user_id=user.id,
+        post_id=post_id,
+    )
+    await engine.save(new_comment)
+
+    return new_comment

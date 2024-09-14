@@ -20,7 +20,11 @@ async def lifespan(app: FastAPI):
     logging.basicConfig(
         level=logging.INFO,  # 로그 레벨 설정
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.StreamHandler(),  # 콘솔 출력
+            logging.FileHandler("app.log", mode="a", encoding="utf-8"),  # 파일 출력
+        ],
     )
 
     c = conf()
@@ -77,6 +81,7 @@ def test_notification_endpoint():
         # 예외 발생 시 에러 메시지 반환
         print(status_code=500, detail=str(e))
 
+
 @app.post("/test_set_redis")
 async def set_redis_data(request: Request):
     data = await request.json()
@@ -85,6 +90,7 @@ async def set_redis_data(request: Request):
     print(key)
     await app.state.redis.set(key, value)
     return {"message": "Data set successfully", "key": key, "value": value}
+
 
 @app.get("/test_get_redis")
 async def get_redis_data(key: str):

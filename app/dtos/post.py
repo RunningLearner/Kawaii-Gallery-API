@@ -7,3 +7,7 @@ class PostUpdate(BaseModel):
     title: str
     content: str
     tags: List[str]
+
+# 댓글 생성 dto
+class CreateComment(BaseModel):
+    content: str  # 댓글 내용

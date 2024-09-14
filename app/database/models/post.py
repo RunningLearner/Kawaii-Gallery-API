@@ -3,7 +3,6 @@ from odmantic import ObjectId, Model
 
 class Post(Model):
     user_id: ObjectId
-    comment_ids: Optional[List[ObjectId]] = []  # 게시글에 달린 댓글 리스트
     title: str
     content: str
     nick_name: str  # 작성자의 닉네임
