@@ -11,3 +11,7 @@ class PostUpdate(BaseModel):
 # 댓글 생성 dto
 class CreateComment(BaseModel):
     content: str  # 댓글 내용
+
+# 댓글 생성 dto
+class UpdateComment(BaseModel):
+    content: str  # 댓글 내용

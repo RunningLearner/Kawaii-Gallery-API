@@ -9,8 +9,8 @@ from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.settings import UPLOAD_DIRECTORY
 import os
-from app.dtos.post import CreateComment, PostUpdate
-from app.utils.user_utils import get_user_by_object_id
+from app.dtos.post import CreateComment, PostUpdate, UpdateComment
+from app.utils.user_utils import decrement_feather, get_user_by_object_id, increment_feather
 from app.utils.token_utils import get_current_user_id
 
 # 로거 설정
@@ -92,6 +92,9 @@ async def create_post(
         nick_name=user.nick_name,
     )
 
+    # 게시글 작성 시 깃털 증가
+    increment_feather(user.id)
+
     new_post = await engine.save(new_post)
 
     # 로그 출력
@@ -114,7 +117,7 @@ async def read_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine
 # Read - 모든 게시글 조회
 @router.get("/")
 async def read_post(engine: AIOEngine = Depends(db.get_engine)):
-    posts = await engine.find(Post)
+    posts = await engine.find(Post, sort=Post.created_at)
     if not posts:
         raise HTTPException(status_code=404, detail="Post not found")
     return posts
@@ -213,7 +216,7 @@ async def read_post(
         raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
     # 게시글 ID를 가지는 모든 댓글 가져오기
-    comments = await engine.find(Comment, Comment.post_id == post_id)
+    comments = await engine.find(Comment, Comment.post_id == post_id, sort=Comment.created_at)
 
     return comments
 
@@ -249,4 +252,46 @@ async def read_post(
     )
     await engine.save(new_comment)
 
+    # 댓글 작성 시 깃털 감소
+    decrement_feather(user.id)
+
     return new_comment
+
+
+@router.put("/comment/{comment_id}")
+async def read_post(
+    comment_id: ObjectId,
+    comment: UpdateComment,
+    engine: AIOEngine = Depends(db.get_engine),
+    user_id: ObjectId = Depends(get_current_user_id),
+):
+    """
+    이 엔드포인트는 특정 게시글에 특정 댓글을 수정합니다.
+
+    - **post_id**: 댓글이 수정될 게시글의 ObjectId
+    - **comment_id**: 수정될 댓글의 ObjectId
+    """
+    # 사용자가 존재하는지 확인
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+
+    # 수정할 댓글이 존재하는지 확인
+    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
+    if not existing_comment:
+        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+
+    # 댓글 작성자가 맞는지 확인
+    if existing_comment.user_id != user.id:
+        raise HTTPException(status_code=403, detail="댓글 작성자가 아닙니다.")
+
+    # 댓글 수정 (기존 댓글 내용 업데이트)
+    existing_comment.content = comment.content  # 새로운 댓글 내용으로 업데이트
+
+    # 댓글 저장 (업데이트)
+    await engine.save(existing_comment)
+
+    # 댓글 수정 시 깃털 감소
+    decrement_feather(user.id)
+
+    return existing_comment

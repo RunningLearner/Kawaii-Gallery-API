@@ -32,7 +32,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-# JWT에서 이메일을 추출하는 함수
+# JWT에서 ID를 추출하는 함수
 async def get_current_user_id(request: Request) -> ObjectId:
     auth_header = request.headers.get("Authorization")
     if not auth_header:
