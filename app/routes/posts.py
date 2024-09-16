@@ -15,7 +15,7 @@ from app.utils.user_utils import (
     get_user_by_object_id,
     increment_feather,
 )
-from app.utils.token_utils import get_current_user_id
+from app.utils.token_utils import get_current_user_id, verify_admin
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -306,21 +306,13 @@ async def read_post(
 async def read_post(
     comment_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
-    user_id: ObjectId = Depends(get_current_user_id),
+    _= Depends(verify_admin),
 ):
     """
     이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
-    TODO: 관리자 권한을 가진 계정인지 확인하는 로직 추가
 
     - **comment_id**: 블라인드될 댓글의 ObjectId
     """
-    # 사용자가 존재하는지 확인
-    user = await engine.find_one(User, User.id == user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
-
-    # 관리자 여부 확인
-
     # 블라인드할 댓글이 존재하는지 확인
     existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
     if not existing_comment:

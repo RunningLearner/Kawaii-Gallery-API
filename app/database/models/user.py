@@ -8,6 +8,7 @@ class User(Model):
     nick_name: str
     email: str
     feather: int = 0  # 사용자의 깃털 개수
+    is_admin: bool = False  # 관리자 여부, 기본값 False
     created_at: datetime = Field(default_factory=get_current_time) # 생성 시간
 
     model_config = {"collection": "users"}
