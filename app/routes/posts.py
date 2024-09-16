@@ -10,7 +10,11 @@ from app.database.models.comment import Comment
 from app.utils.settings import UPLOAD_DIRECTORY
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
-from app.utils.user_utils import decrement_feather, get_user_by_object_id, increment_feather
+from app.utils.user_utils import (
+    decrement_feather,
+    get_user_by_object_id,
+    increment_feather,
+)
 from app.utils.token_utils import get_current_user_id
 
 # 로거 설정
@@ -216,7 +220,9 @@ async def read_post(
         raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
     # 게시글 ID를 가지는 모든 댓글 가져오기
-    comments = await engine.find(Comment, Comment.post_id == post_id, sort=Comment.created_at)
+    comments = await engine.find(
+        Comment, Comment.post_id == post_id, sort=Comment.created_at
+    )
 
     return comments
 
@@ -268,7 +274,6 @@ async def read_post(
     """
     이 엔드포인트는 특정 게시글에 특정 댓글을 수정합니다.
 
-    - **post_id**: 댓글이 수정될 게시글의 ObjectId
     - **comment_id**: 수정될 댓글의 ObjectId
     """
     # 사용자가 존재하는지 확인
@@ -293,5 +298,38 @@ async def read_post(
 
     # 댓글 수정 시 깃털 감소
     decrement_feather(user.id)
+
+    return existing_comment
+
+
+@router.delete("/comment/{comment_id}")
+async def read_post(
+    comment_id: ObjectId,
+    engine: AIOEngine = Depends(db.get_engine),
+    user_id: ObjectId = Depends(get_current_user_id),
+):
+    """
+    이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
+    TODO: 관리자 권한을 가진 계정인지 확인하는 로직 추가
+
+    - **comment_id**: 블라인드될 댓글의 ObjectId
+    """
+    # 사용자가 존재하는지 확인
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+
+    # 관리자 여부 확인
+
+    # 블라인드할 댓글이 존재하는지 확인
+    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
+    if not existing_comment:
+        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+
+    # 댓글 블라인드 처리
+    existing_comment.content = "관리자에 의해 블라인드 처리된 댓글입니다."  
+
+    # 댓글 저장 (업데이트)
+    await engine.save(existing_comment)
 
     return existing_comment
