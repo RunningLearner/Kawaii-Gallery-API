@@ -1,12 +1,13 @@
 from datetime import datetime
 import logging
 from typing import List
-from fastapi import APIRouter, File, Form, HTTPException, Depends, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Depends, Path, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
-from app.database.models.post import Post
+from app.database.models.post import MediaFile, Post
 from app.database.models.user import User
 from app.database.models.comment import Comment
+from app.utils.media_utils import create_video_thumbnail
 from app.utils.settings import UPLOAD_DIRECTORY
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
@@ -26,10 +27,16 @@ MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
 # Create - 게시글 생성
 @router.post("/")
 async def create_post(
-    title: str = Form(...),
-    content: str = Form(...),
-    tags: List[str] = Form(...),
-    files: List[UploadFile] = File(...),
+    title: str = Form(..., description="게시글의 제목", example="새로운 게시글"),
+    content: str = Form(
+        ..., description="게시글의 내용", example="이것은 게시글의 내용입니다."
+    ),
+    tags: List[str] = Form(
+        ..., description="게시글에 추가할 태그들", example=["Python", "FastAPI"]
+    ),
+    files: List[UploadFile] = File(
+        ..., description="업로드할 이미지 또는 비디오 파일들"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
@@ -40,7 +47,7 @@ async def create_post(
             status_code=400, detail="최대 5개의 이미지 파일만 업로드할 수 있습니다."
         )
 
-    file_urls = []
+    file_objects = []
     for file in files:
         # 파일 MIME 타입 확인
         file_type = file.content_type
@@ -54,7 +61,7 @@ async def create_post(
             if file_size > MAX_VIDEO_SIZE:
                 raise HTTPException(
                     status_code=413,
-                    detail=f"Video file size exceeds the maximum limit of {MAX_VIDEO_SIZE // (1024 * 1024)}MB.",
+                    detail=f"비디오 파일은 {MAX_VIDEO_SIZE // (1024 * 1024)}MB를 초과할 수 없습니다.",
                 )
 
         # 이름 중복 제거 위한 시간 접두사
@@ -68,6 +75,12 @@ async def create_post(
         elif file_type.startswith("video/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
             file_url = f"/static/videos/{new_filename}"
+
+            # 비디오일 경우 썸네일 URL 생성
+            thumbnail_path = os.path.join(
+                UPLOAD_DIRECTORY, "thumbnails", f"{new_filename}_thumbnail.jpg"
+            )
+            thumbnail_url = f"/static/thumbnails/{new_filename}_thumbnail.jpg"
         else:
             raise HTTPException(
                 status_code=400, detail=f"{file_type} is an unsupported file type"
@@ -78,7 +91,15 @@ async def create_post(
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
 
-        file_urls.append(file_url)
+        # 파일이 저장된 후 비디오일 경우 썸네일 생성
+        if file_type.startswith("video/"):
+            create_video_thumbnail(file_path, thumbnail_path)
+
+        # MediaFile 객체 생성 및 리스트에 추가
+        file_object = MediaFile(
+            url=file_url, file_type=file_type.split("/")[0], thumbnail_url=thumbnail_url
+        )
+        file_objects.append(file_object)
 
     # 작성자 정보
     user = await engine.find_one(User, User.id == user_id)
@@ -90,7 +111,7 @@ async def create_post(
     new_post = Post(
         title=title,
         content=content,
-        file_urls=file_urls,
+        files=file_objects,
         tags=tags,
         user_id=user.id,
         nick_name=user.nick_name,
@@ -111,7 +132,15 @@ async def create_post(
 
 # Read - 게시글 조회 (ID 기반)
 @router.get("/{post_id}")
-async def read_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine)):
+async def read_post(
+    post_id: ObjectId = Path(
+        ..., description="조회할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
+    engine: AIOEngine = Depends(db.get_engine),
+):
+    """
+    이 엔드포인트는 특정 게시글을 조회합니다.
+    """
     post = await engine.find_one(Post, Post.id == post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -121,6 +150,10 @@ async def read_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine
 # Read - 모든 게시글 조회
 @router.get("/")
 async def read_post(engine: AIOEngine = Depends(db.get_engine)):
+    """
+    이 엔드포인트는 모든 게시글을 조회합니다.
+    결과는 생성일 기준으로 정렬됩니다.
+    """
     posts = await engine.find(Post, sort=Post.created_at)
     if not posts:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -130,10 +163,17 @@ async def read_post(engine: AIOEngine = Depends(db.get_engine)):
 # Update - 게시글 수정
 @router.put("/{post_id}")
 async def update_post(
-    post_id: ObjectId,
     post_update: PostUpdate,
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
 ):
+    """
+    이 엔드포인트는 특정 게시글의 내용을 수정합니다.
+
+    - **post_update**: 업데이트할 게시글 정보 (제목, 내용, 태그)
+    """
     # 수정할 게시글 정보
     post = await engine.find_one(Post, Post.id == post_id)
 
@@ -152,11 +192,14 @@ async def update_post(
 
 # Delete - 게시글 삭제
 @router.delete("/{post_id}")
-async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engine)):
+async def delete_post(
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
+    engine: AIOEngine = Depends(db.get_engine),
+):
     """
     이 엔드포인트는 특정 게시글을 삭제합니다.
-
-    - **post_id**: 삭제될 게시글의 ObjectId
     """
     post = await engine.find_one(Post, Post.id == post_id)
     if not post:
@@ -168,14 +211,14 @@ async def delete_post(post_id: ObjectId, engine: AIOEngine = Depends(db.get_engi
 # 게시글 좋아요
 @router.post("/{post_id}/like")
 async def like_post(
-    post_id: ObjectId,
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
     user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 이메일
 ):
     """
     이 엔드포인트는 특정 게시글에 좋아요를 생성합니다.
-
-    - **post_id**: 좋아요가 추가될 게시글의 ObjectId
     """
     # 현재 사용자 가져오기
     user = await get_user_by_object_id(user_id)
@@ -205,13 +248,13 @@ async def like_post(
 
 @router.get("/{post_id}/comments")
 async def read_post(
-    post_id: ObjectId,
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
 ):
     """
     이 엔드포인트는 특정 게시글의 모든 댓글 목록을 반환합니다.
-
-    - **post_id**: 댓글들을 가져올 게시글의 ObjectId
     """
     # 게시글 ID로 가져오기
     post = await engine.find_one(Post, Post.id == post_id)
@@ -229,15 +272,15 @@ async def read_post(
 
 @router.post("/{post_id}/comment")
 async def read_post(
-    post_id: ObjectId,
     comment: CreateComment,
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
     이 엔드포인트는 특정 게시글에 댓글을 생성합니다.
-
-    - **post_id**: 댓글이 생성될 게시글의 ObjectId
     """
     # 게시글 ID로 가져오기
     post = await engine.find_one(Post, Post.id == post_id)
@@ -266,15 +309,15 @@ async def read_post(
 
 @router.put("/comment/{comment_id}")
 async def read_post(
-    comment_id: ObjectId,
     comment: UpdateComment,
+    comment_id: ObjectId = Path(
+        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
     이 엔드포인트는 특정 게시글에 특정 댓글을 수정합니다.
-
-    - **comment_id**: 수정될 댓글의 ObjectId
     """
     # 사용자가 존재하는지 확인
     user = await engine.find_one(User, User.id == user_id)
@@ -304,14 +347,14 @@ async def read_post(
 
 @router.delete("/comment/{comment_id}")
 async def read_post(
-    comment_id: ObjectId,
+    comment_id: ObjectId = Path(
+        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
     engine: AIOEngine = Depends(db.get_engine),
-    _= Depends(verify_admin),
+    _=Depends(verify_admin),
 ):
     """
     이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
-
-    - **comment_id**: 블라인드될 댓글의 ObjectId
     """
     # 블라인드할 댓글이 존재하는지 확인
     existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
@@ -319,7 +362,7 @@ async def read_post(
         raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
 
     # 댓글 블라인드 처리
-    existing_comment.content = "관리자에 의해 블라인드 처리된 댓글입니다."  
+    existing_comment.content = "관리자에 의해 블라인드 처리된 댓글입니다."
 
     # 댓글 저장 (업데이트)
     await engine.save(existing_comment)
