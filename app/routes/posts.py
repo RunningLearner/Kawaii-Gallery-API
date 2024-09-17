@@ -1,16 +1,15 @@
 from datetime import datetime
 import logging
 from typing import List
-from fastapi import APIRouter, File, Form, HTTPException, Depends, Path, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Depends, Path, Request, UploadFile
 from odmantic import AIOEngine, ObjectId
-from redis import Redis
+import redis.asyncio as aioredis
 from app.database.conn import db
 from app.database.models.post import MediaFile, Post
 from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.media_utils import create_video_thumbnail
 from app.utils.settings import UPLOAD_DIRECTORY
-from app.main import app
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
 from app.utils.time_util import get_seconds_until_midnight_kst
@@ -26,6 +25,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/post")
 MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
 
+# FastAPI의 Request 객체를 통해 Redis 인스턴스에 접근
+async def get_redis(request: Request) -> aioredis.Redis:
+    return request.app.state.redis
 
 # Create - 게시글 생성
 @router.post("/")
@@ -219,7 +221,7 @@ async def like_post(
     ),
     engine: AIOEngine = Depends(db.get_engine),
     user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 ID
-    redis: Redis = Depends(lambda: app.state.redis),  # Redis 인스턴스 의존성
+    redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
 ):
     """
     이 엔드포인트는 특정 게시글에 좋아요를 추가하거나 취소합니다.
