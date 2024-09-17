@@ -3,14 +3,17 @@ import logging
 from typing import List
 from fastapi import APIRouter, File, Form, HTTPException, Depends, Path, UploadFile
 from odmantic import AIOEngine, ObjectId
+from redis import Redis
 from app.database.conn import db
 from app.database.models.post import MediaFile, Post
 from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.media_utils import create_video_thumbnail
 from app.utils.settings import UPLOAD_DIRECTORY
+from app.main import app
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
+from app.utils.time_util import get_seconds_until_midnight_kst
 from app.utils.user_utils import (
     decrement_feather,
     get_user_by_object_id,
@@ -215,10 +218,11 @@ async def like_post(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
     engine: AIOEngine = Depends(db.get_engine),
-    user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 이메일
+    user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 ID
+    redis: Redis = Depends(lambda: app.state.redis),  # Redis 인스턴스 의존성
 ):
     """
-    이 엔드포인트는 특정 게시글에 좋아요를 생성합니다.
+    이 엔드포인트는 특정 게시글에 좋아요를 추가하거나 취소합니다.
     """
     # 현재 사용자 가져오기
     user = await get_user_by_object_id(user_id)
@@ -235,14 +239,32 @@ async def like_post(
         post.liked_by.remove(user.id)
         post.likes_count -= 1
         liked = False
+
     else:
         # 좋아요 추가
         post.liked_by.append(user.id)
         post.likes_count += 1
         liked = True
 
-    await engine.save(post)
+        # 24시간 이내에 동일 사용자가 좋아요를 눌렀는지 확인
+        notification_exists = await redis.hexists(f"post:{post_id}:like_user", user_id)
+        
+        # 캐싱되지 않았다면 추가
+        if not notification_exists:
+            # TODO: 게시글 작성자에게 좋아요 알림 보내기 (이 부분은 구현 필요)
+            print(f"게시글 {post_id}에 좋아요 알림이 전송되었습니다.")
+            
+            # HSET으로 유저 정보를 저장
+            await redis.hset(f"post:{post_id}:like_user", user_id, "notified")
 
+            # 한국 시간 기준으로 자정까지 남은 시간 계산
+            seconds_until_midnight = get_seconds_until_midnight_kst()
+
+            # 다음 00시까지 남은 시간 동안 만료 설정
+            await redis.expire(f"post:{post_id}:like_user", seconds_until_midnight)
+
+    await engine.save(post)
+    
     return {"liked": liked, "post": post}
 
 

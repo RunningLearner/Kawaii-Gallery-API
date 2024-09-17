@@ -3,8 +3,6 @@ FROM python:3.11-slim
 
 # 필요한 패키지 업데이트 및 설치 (OpenGL 관련 라이브러리 포함)
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libopencv-dev \
     python3-opencv \
     libgl1-mesa-glx   # OpenGL 관련 라이브러리 설치
     

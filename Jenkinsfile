@@ -22,7 +22,7 @@ pipeline {
 
                     // 기존 컨테이너 중지 및 제거 (볼륨 포함) 
                     // TODO: 프로덕션 단계에서는 볼륨 제거 옵션 삭제하기
-                    // sh 'docker-compose -f ${COMPOSE_FILE} down --volumes'
+                    sh 'docker-compose -f ${COMPOSE_FILE} down --volumes'
                     
                     // Docker 빌드 시 캐시를 사용하지 않고 빌드
                     sh 'docker-compose -f ${COMPOSE_FILE} build --no-cache'
