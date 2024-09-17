@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libopencv-dev \
     python3-opencv \
-    libgl1-mesa-glx \  # OpenGL 관련 라이브러리 설치
+    libgl1-mesa-glx   # OpenGL 관련 라이브러리 설치
     
 # 작업 디렉토리 설정
 WORKDIR /app
