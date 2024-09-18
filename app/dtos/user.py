@@ -39,23 +39,14 @@ class UserResponseModel(BaseModel):
         from_attributes = True
 
     @classmethod
-    def model_validate(cls, obj):
-         # obj의 모든 속성과 타입을 출력
-        print("Before conversion:", obj.__dict__)  # 객체의 모든 속성 출력
-        print("Before conversion types:", {k: type(v) for k, v in obj.__dict__.items()})  # 타입 출력
-        
-        # ObjectId를 문자열로 변환
-        if isinstance(obj.id, ObjectId):
-            print(f"ObjectId before conversion: {obj.id}")  # ObjectId 변환 전 출력
-            obj.id = str(obj.id)
-            print(f"ObjectId after conversion: {obj.id}")  # ObjectId 변환 후 출력
-        # 변환 후 obj의 모든 속성과 타입을 출력
-        print("After conversion:", obj.__dict__)
-        print("After conversion types:", {k: type(v) for k, v in obj.__dict__.items()})
-
-        # super().model_validate(obj) 전에 출력
-        print("Before model_validate call:", obj.__dict__)
-        return super().model_validate(obj)
+    def from_odmantic(cls, obj):
+        # Odmantic 모델의 ObjectId를 문자열로 변환하고 나머지 데이터를 Pydantic 모델로 반환
+        return cls(
+            id=str(obj.id),  # ObjectId를 문자열로 변환
+            nick_name=obj.nick_name,
+            email=obj.email,
+            profile_image_url=obj.profile_image_url,
+        )
 
 
 # 모든 사용자 조회 시 반환되는 모델

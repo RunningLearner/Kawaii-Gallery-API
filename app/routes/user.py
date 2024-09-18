@@ -35,7 +35,7 @@ async def get_user(
         raise HTTPException(status_code=404, detail=f"사용자가 존재하지 않습니다.")
 
     # ODMantic User 객체를 Pydantic UserResponseModel로 변환 후 반환
-    return {"users": [UserResponseModel.model_validate(user) for user in users]}
+    return {"users": [UserResponseModel.from_odmantic(user) for user in users]}
 
 
 # Update - 사용자 정보 수정 (닉네임 변경)
@@ -155,4 +155,4 @@ async def get_user_by_id(
             status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
         )
 
-    return UserResponseModel.model_validate(user)
+    return UserResponseModel.from_odmantic(user)
