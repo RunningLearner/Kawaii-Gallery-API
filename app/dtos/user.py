@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from odmantic import ObjectId
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,9 @@ class UserResponseModel(BaseModel):
     id: str = Field(..., description="사용자의 고유 ID")
     nick_name: str = Field(..., description="사용자의 닉네임")
     email: str = Field(..., description="사용자의 이메일")
-    profile_image_url: str = Field(None, description="사용자의 프로필 이미지 URL")
+    profile_image_url: Optional[str] = Field(
+        None, description="사용자의 프로필 이미지 URL"
+    )
 
     class Config:
         from_attributes = True
