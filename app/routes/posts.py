@@ -88,6 +88,8 @@ async def create_post(
         if file_type.startswith("image/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "images", new_filename)
             file_url = f"/static/images/{new_filename}"
+            thumbnail_url = None  
+            
         elif file_type.startswith("video/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
             file_url = f"/static/videos/{new_filename}"
