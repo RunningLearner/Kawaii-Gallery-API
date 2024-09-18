@@ -1,7 +1,16 @@
 from datetime import datetime
 import logging
 from typing import List
-from fastapi import APIRouter, File, Form, HTTPException, Depends, Path, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    Depends,
+    Path,
+    Request,
+    UploadFile,
+)
 from odmantic import AIOEngine, ObjectId
 import redis.asyncio as aioredis
 from app.database.conn import db
@@ -25,9 +34,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/post")
 MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
 
+
 # FastAPI의 Request 객체를 통해 Redis 인스턴스에 접근
 async def get_redis(request: Request) -> aioredis.Redis:
     return request.app.state.redis
+
 
 # Create - 게시글 생성
 @router.post("/")
@@ -213,6 +224,38 @@ async def delete_post(
     return post
 
 
+# 인기 게시글 상위 n+1개를 반환하는 엔드포인트
+@router.get("/popular", response_model=List[Post])
+async def get_popular_posts(
+    engine: AIOEngine = Depends(db.get_engine),
+    redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
+):
+    """
+    일간 인기순위 상위의 게시글을 반환합니다.
+    상위 n개는 내부적으로 고정된 값입니다.
+    """
+    # 상위 고정 값
+    n = 4
+    
+    # Redis에서 상위 n+1개의 인기 게시글 ID 가져오기
+    popular_post_ids = await redis.zrevrange("popular_posts", 0, n)
+
+    if not popular_post_ids:
+        raise HTTPException(status_code=404, detail="인기 게시글이 없습니다.")
+
+    # 가져온 인기 게시글 ID 리스트로 DB에서 게시글 정보 조회
+    popular_posts = []
+    for post_id in popular_post_ids:
+        post = await engine.find_one(Post, Post.id == ObjectId(post_id))
+        if post:
+            popular_posts.append(post)
+
+    if not popular_posts:
+        raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
+
+    return popular_posts
+
+
 # 게시글 좋아요
 @router.post("/{post_id}/like")
 async def like_post(
@@ -250,12 +293,12 @@ async def like_post(
 
         # 24시간 이내에 동일 사용자가 좋아요를 눌렀는지 확인
         notification_exists = await redis.hexists(f"post:{post_id}:like_user", user_id)
-        
+
         # 캐싱되지 않았다면 추가
         if not notification_exists:
             # TODO: 게시글 작성자에게 좋아요 알림 보내기 (이 부분은 구현 필요)
             print(f"게시글 {post_id}에 좋아요 알림이 전송되었습니다.")
-            
+
             # HSET으로 유저 정보를 저장
             await redis.hset(f"post:{post_id}:like_user", user_id, "notified")
 
@@ -265,8 +308,14 @@ async def like_post(
             # 다음 00시까지 남은 시간 동안 만료 설정
             await redis.expire(f"post:{post_id}:like_user", seconds_until_midnight)
 
+            # ZSET에 좋아요 증가 기록 추가
+            await redis.zincrby("popular_posts", 1, f"{post_id}")
+
+            # ZSET 만료 시간 설정 (자정까지 남은 시간)
+            await redis.expire("popular_posts", seconds_until_midnight)
+
     await engine.save(post)
-    
+
     return {"liked": liked, "post": post}
 
 
