@@ -39,11 +39,11 @@ class UserResponseModel(BaseModel):
         from_attributes = True
 
     @classmethod
-    def model_modify(cls, obj):
+    def model_validate(cls, obj):
         # ObjectId를 문자열로 변환
         if isinstance(obj.id, ObjectId):
             obj.id = str(obj.id)
-        return obj
+        return super().model_validate(obj)
 
 
 # 모든 사용자 조회 시 반환되는 모델
