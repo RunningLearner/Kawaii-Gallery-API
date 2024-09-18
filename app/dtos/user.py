@@ -1,4 +1,5 @@
 from typing import List
+from odmantic import ObjectId
 from pydantic import BaseModel, Field
 
 
@@ -34,6 +35,13 @@ class UserResponseModel(BaseModel):
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def model_modify(cls, obj):
+        # ObjectId를 문자열로 변환
+        if isinstance(obj.id, ObjectId):
+            obj.id = str(obj.id)
+        return obj
 
 
 # 모든 사용자 조회 시 반환되는 모델
