@@ -20,26 +20,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/user")
 
 
-# Read - 사용자 조회
-@router.get("/{user_id}", response_model=UserResponseModel)
-async def get_user_by_id(
-    user_id: ObjectId,
-    engine: AIOEngine = Depends(db.get_engine),
-):
-    """
-    이 엔드포인트는 아이템을 path parameter를 통해 사용자를 조회합니다.
-
-    - **user_id**: 조회할 사용자의 ObjectId
-    """
-    user = await engine.find_one(User, User.id == user_id)
-    if not user:
-        raise HTTPException(
-            status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
-        )
-
-    return UserResponseModel.model_validate(user)
-
-
 # Read - 모든 사용자 조회
 @router.get("/", response_model=UserListResponseModel)
 async def get_user(
@@ -156,3 +136,23 @@ async def update_user_profile_image(
         "msg": "프로필 이미지가 업데이트되었습니다.",
         "profile_image_url": file_path,
     }
+
+
+# Read - 사용자 조회
+@router.get("/{user_id}", response_model=UserResponseModel)
+async def get_user_by_id(
+    user_id: ObjectId,
+    engine: AIOEngine = Depends(db.get_engine),
+):
+    """
+    이 엔드포인트는 아이템을 path parameter를 통해 사용자를 조회합니다.
+
+    - **user_id**: 조회할 사용자의 ObjectId
+    """
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(
+            status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
+        )
+
+    return UserResponseModel.model_validate(user)

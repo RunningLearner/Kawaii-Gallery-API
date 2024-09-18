@@ -88,7 +88,7 @@ async def create_post(
         if file_type.startswith("image/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "images", new_filename)
             file_url = f"/static/images/{new_filename}"
-            thumbnail_url = None  
+            thumbnail_url = None
 
         elif file_type.startswith("video/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
@@ -148,23 +148,6 @@ async def create_post(
     return new_post
 
 
-# Read - 게시글 조회 (ID 기반)
-@router.get("/{post_id}")
-async def read_post(
-    post_id: ObjectId = Path(
-        ..., description="조회할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
-    ),
-    engine: AIOEngine = Depends(db.get_engine),
-):
-    """
-    이 엔드포인트는 특정 게시글을 조회합니다.
-    """
-    post = await engine.find_one(Post, Post.id == post_id)
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
-    return post
-
-
 # Read - 모든 게시글 조회
 @router.get("/")
 async def read_post(engine: AIOEngine = Depends(db.get_engine)):
@@ -176,54 +159,6 @@ async def read_post(engine: AIOEngine = Depends(db.get_engine)):
     if not posts:
         raise HTTPException(status_code=404, detail="Post not found")
     return posts
-
-
-# Update - 게시글 수정
-@router.put("/{post_id}")
-async def update_post(
-    post_update: PostUpdate,
-    post_id: ObjectId = Path(
-        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
-    ),
-    engine: AIOEngine = Depends(db.get_engine),
-):
-    """
-    이 엔드포인트는 특정 게시글의 내용을 수정합니다.
-
-    - **post_update**: 업데이트할 게시글 정보 (제목, 내용, 태그)
-    """
-    # 수정할 게시글 정보
-    post = await engine.find_one(Post, Post.id == post_id)
-
-    # 존재하지 않을 시
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
-
-    # 업데이트할 필드 설정
-    post.title = post_update.title
-    post.content = post_update.content
-    post.tags = post_update.tags
-
-    await engine.save(post)
-    return post
-
-
-# Delete - 게시글 삭제
-@router.delete("/{post_id}")
-async def delete_post(
-    post_id: ObjectId = Path(
-        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
-    ),
-    engine: AIOEngine = Depends(db.get_engine),
-):
-    """
-    이 엔드포인트는 특정 게시글을 삭제합니다.
-    """
-    post = await engine.find_one(Post, Post.id == post_id)
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
-    await engine.delete(post)
-    return post
 
 
 # 인기 게시글 상위 n+1개를 반환하는 엔드포인트
@@ -238,7 +173,7 @@ async def get_popular_posts(
     """
     # 상위 고정 값
     n = 4
-    
+
     # Redis에서 상위 n+1개의 인기 게시글 ID 가져오기
     popular_post_ids = await redis.zrevrange("popular_posts", 0, n)
 
@@ -256,6 +191,69 @@ async def get_popular_posts(
         raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
     return popular_posts
+
+
+@router.put("/comment/{comment_id}")
+async def read_post(
+    comment: UpdateComment,
+    comment_id: ObjectId = Path(
+        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
+    engine: AIOEngine = Depends(db.get_engine),
+    user_id: ObjectId = Depends(get_current_user_id),
+):
+    """
+    이 엔드포인트는 특정 게시글에 특정 댓글을 수정합니다.
+    """
+    # 사용자가 존재하는지 확인
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+
+    # 수정할 댓글이 존재하는지 확인
+    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
+    if not existing_comment:
+        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+
+    # 댓글 작성자가 맞는지 확인
+    if existing_comment.user_id != user.id:
+        raise HTTPException(status_code=403, detail="댓글 작성자가 아닙니다.")
+
+    # 댓글 수정 (기존 댓글 내용 업데이트)
+    existing_comment.content = comment.content  # 새로운 댓글 내용으로 업데이트
+
+    # 댓글 저장 (업데이트)
+    await engine.save(existing_comment)
+
+    # 댓글 수정 시 깃털 감소
+    decrement_feather(user.id)
+
+    return existing_comment
+
+
+@router.delete("/comment/{comment_id}")
+async def read_post(
+    comment_id: ObjectId = Path(
+        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
+    engine: AIOEngine = Depends(db.get_engine),
+    _=Depends(verify_admin),
+):
+    """
+    이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
+    """
+    # 블라인드할 댓글이 존재하는지 확인
+    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
+    if not existing_comment:
+        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+
+    # 댓글 블라인드 처리
+    existing_comment.content = "관리자에 의해 블라인드 처리된 댓글입니다."
+
+    # 댓글 저장 (업데이트)
+    await engine.save(existing_comment)
+
+    return existing_comment
 
 
 # 게시글 좋아요
@@ -382,64 +380,66 @@ async def read_post(
     return new_comment
 
 
-@router.put("/comment/{comment_id}")
+# Read - 게시글 조회 (ID 기반)
+@router.get("/{post_id}")
 async def read_post(
-    comment: UpdateComment,
-    comment_id: ObjectId = Path(
-        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    post_id: ObjectId = Path(
+        ..., description="조회할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
     engine: AIOEngine = Depends(db.get_engine),
-    user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
-    이 엔드포인트는 특정 게시글에 특정 댓글을 수정합니다.
+    이 엔드포인트는 특정 게시글을 조회합니다.
     """
-    # 사용자가 존재하는지 확인
-    user = await engine.find_one(User, User.id == user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
-
-    # 수정할 댓글이 존재하는지 확인
-    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
-    if not existing_comment:
-        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
-
-    # 댓글 작성자가 맞는지 확인
-    if existing_comment.user_id != user.id:
-        raise HTTPException(status_code=403, detail="댓글 작성자가 아닙니다.")
-
-    # 댓글 수정 (기존 댓글 내용 업데이트)
-    existing_comment.content = comment.content  # 새로운 댓글 내용으로 업데이트
-
-    # 댓글 저장 (업데이트)
-    await engine.save(existing_comment)
-
-    # 댓글 수정 시 깃털 감소
-    decrement_feather(user.id)
-
-    return existing_comment
+    post = await engine.find_one(Post, Post.id == post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
 
 
-@router.delete("/comment/{comment_id}")
-async def read_post(
-    comment_id: ObjectId = Path(
-        ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+# Update - 게시글 수정
+@router.put("/{post_id}")
+async def update_post(
+    post_update: PostUpdate,
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
     engine: AIOEngine = Depends(db.get_engine),
-    _=Depends(verify_admin),
 ):
     """
-    이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
+    이 엔드포인트는 특정 게시글의 내용을 수정합니다.
+
+    - **post_update**: 업데이트할 게시글 정보 (제목, 내용, 태그)
     """
-    # 블라인드할 댓글이 존재하는지 확인
-    existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
-    if not existing_comment:
-        raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+    # 수정할 게시글 정보
+    post = await engine.find_one(Post, Post.id == post_id)
 
-    # 댓글 블라인드 처리
-    existing_comment.content = "관리자에 의해 블라인드 처리된 댓글입니다."
+    # 존재하지 않을 시
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
 
-    # 댓글 저장 (업데이트)
-    await engine.save(existing_comment)
+    # 업데이트할 필드 설정
+    post.title = post_update.title
+    post.content = post_update.content
+    post.tags = post_update.tags
 
-    return existing_comment
+    await engine.save(post)
+    return post
+
+
+# Delete - 게시글 삭제
+@router.delete("/{post_id}")
+async def delete_post(
+    post_id: ObjectId = Path(
+        ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
+    ),
+    engine: AIOEngine = Depends(db.get_engine),
+):
+    """
+    이 엔드포인트는 특정 게시글을 삭제합니다.
+    """
+    post = await engine.find_one(Post, Post.id == post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await engine.delete(post)
+    return post
