@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Body
+import os
+from fastapi import APIRouter, File, HTTPException, Depends, Body, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
 from app.database.models.user import User
-from app.dtos.user import UserUpdate
+from app.dtos.user import DeleteUserResponseModel, UpdateProfileImageResponseModel, UpdateUserResponseModel, UserListResponseModel, UserResponseModel, UserUpdate
 from app.utils.token_utils import get_current_user_id
 
 import logging
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/user")
 
 
 # Read - 사용자 조회
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=UserResponseModel)
 async def get_user_by_id(
     user_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
@@ -33,7 +34,7 @@ async def get_user_by_id(
 
 
 # Read - 모든 사용자 조회
-@router.get("/")
+@router.get("/", response_model=UserListResponseModel)
 async def get_user(
     engine: AIOEngine = Depends(db.get_engine),
 ):
@@ -50,12 +51,15 @@ async def get_user(
 
 
 # Update - 사용자 정보 수정 (닉네임 변경)
-@router.put("/")
+@router.put("/nickname", response_model=UpdateUserResponseModel)
 async def update_user(
     user_update: UserUpdate,
     user_id: str = Depends(get_current_user_id),
     engine: AIOEngine = Depends(db.get_engine),
 ):
+    """
+    이 엔드포인트는 사용자의 닉네임을 수정합니다.
+    """
     user = await engine.find_one(User, User.id == user_id)
     if not user:
         raise HTTPException(status_code=404, detail="해당 사용자를 찾을 수 없습니다.")
@@ -74,15 +78,20 @@ async def update_user(
 
     logger.info(f"유저 업데이트 완료: {user.nick_name} ({user.email})")
 
-    return {"msg": "유저 정보가 업데이트되었습니다."}
+    return {"msg": "유저 정보가 업데이트되었습니다.", "nick_name": user.nick_name}
 
 
 # Delete - 사용자 삭제
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", response_model=DeleteUserResponseModel)
 async def delete_user(
     user_id: ObjectId,
     engine: AIOEngine = Depends(db.get_engine),
 ):
+    """
+    이 엔드포인트는 특정 사용자를 삭제합니다.
+
+    - **user_id**: 삭제할 사용자의 ObjectId
+    """
     user = await engine.find_one(User, User.id == user_id)
     if not user:
         raise HTTPException(status_code=404, detail="해당 사용자를 찾을 수 없습니다.")
@@ -92,3 +101,50 @@ async def delete_user(
     logger.info(f"유저 삭제 완료: {user.nick_name} ({user.email})")
 
     return {"msg": "유저가 삭제되었습니다."}
+
+
+# Update - 사용자 정보 수정 (닉네임 변경)
+@router.put("/profile_image", response_model=UpdateProfileImageResponseModel)
+async def update_user_profile_image(
+    file: UploadFile = File(..., description="업로드할 이미지 또는 비디오 파일들"),
+    user_id: str = Depends(get_current_user_id),
+    engine: AIOEngine = Depends(db.get_engine),
+):
+    """
+    이 엔드포인트는 사용자의 프로필 이미지를 수정합니다.
+
+    - **file**: 업로드할 이미지 파일 (.png, .jpg, .jpeg, .gif 허용)
+    """
+    user = await engine.find_one(User, User.id == user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="해당 사용자를 찾을 수 없습니다.")
+
+    # 파일 확장자 체크 (이미지 파일만 허용)
+    if not file.filename.lower().endswith((".png", ".jpg", ".jpeg", ".gif")):
+        raise HTTPException(status_code=400, detail="이미지 파일만 업로드 가능합니다.")
+
+    # 저장할 경로 설정
+    upload_directory = "uploads/profile_images"
+    os.makedirs(upload_directory, exist_ok=True)  # 디렉터리가 없으면 생성
+
+    file_path = os.path.join(upload_directory, f"{user_id}_{file.filename}")
+
+    # 파일 저장
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+
+    # 기존 프로필 이미지 삭제 (선택사항)
+    if user.profile_image_url:
+        if os.path.exists(user.profile_image_url):
+            os.remove(user.profile_image_url)
+
+    # 사용자 프로필 이미지 경로 업데이트
+    user.profile_image_url = file_path
+    await engine.save(user)
+
+    logger.info(f"유저 프로필 이미지 업데이트 완료: {user.nick_name} ({user.email})")
+
+    return {
+        "msg": "프로필 이미지가 업데이트되었습니다.",
+        "profile_image_url": file_path,
+    }
