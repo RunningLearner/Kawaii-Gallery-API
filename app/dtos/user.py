@@ -33,7 +33,7 @@ class UserResponseModel(BaseModel):
     profile_image_url: str = Field(None, description="사용자의 프로필 이미지 URL")
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 모든 사용자 조회 시 반환되는 모델
