@@ -3,7 +3,14 @@ from fastapi import APIRouter, File, HTTPException, Depends, Body, UploadFile
 from odmantic import AIOEngine, ObjectId
 from app.database.conn import db
 from app.database.models.user import User
-from app.dtos.user import DeleteUserResponseModel, UpdateProfileImageResponseModel, UpdateUserResponseModel, UserListResponseModel, UserResponseModel, UserUpdate
+from app.dtos.user import (
+    DeleteUserResponseModel,
+    UpdateProfileImageResponseModel,
+    UpdateUserResponseModel,
+    UserListResponseModel,
+    UserResponseModel,
+    UserUpdate,
+)
 from app.utils.token_utils import get_current_user_id
 
 import logging
@@ -30,7 +37,7 @@ async def get_user_by_id(
             status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
         )
 
-    return user
+    return UserResponseModel.model_validate(user)
 
 
 # Read - 모든 사용자 조회
