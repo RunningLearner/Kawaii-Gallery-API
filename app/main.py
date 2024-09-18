@@ -1,6 +1,8 @@
 from dataclasses import asdict
 import logging
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -61,6 +63,21 @@ def create_app():
 
 
 app = create_app()
+
+
+# 미들웨어 추가
+class CharsetMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response: Response = await call_next(request)
+        # 모든 응답에 charset=utf-8 추가
+        response.headers["Content-Type"] = (
+            response.headers.get("Content-Type", "application/json") + "; charset=utf-8"
+        )
+        return response
+
+
+# 미들웨어 등록
+app.add_middleware(CharsetMiddleware)
 
 # 라우터 정의
 app.include_router(index.router)
