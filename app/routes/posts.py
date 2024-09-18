@@ -89,7 +89,7 @@ async def create_post(
             file_path = os.path.join(UPLOAD_DIRECTORY, "images", new_filename)
             file_url = f"/static/images/{new_filename}"
             thumbnail_url = None  
-            
+
         elif file_type.startswith("video/"):
             file_path = os.path.join(UPLOAD_DIRECTORY, "videos", new_filename)
             file_url = f"/static/videos/{new_filename}"
@@ -142,7 +142,7 @@ async def create_post(
 
     # 로그 출력
     logger.info(
-        f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}, 파일 URL - {new_post.file_urls}"
+        f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}"
     )
 
     return new_post
