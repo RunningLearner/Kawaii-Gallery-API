@@ -139,7 +139,7 @@ async def create_post(
         )
 
         # 게시글 작성 시 깃털 증가
-        increment_feather(user.id)
+        await increment_feather(user.id)
 
         new_post = await engine.save(new_post)
 
@@ -273,7 +273,7 @@ async def read_post(
         await engine.save(existing_comment)
 
         # 댓글 수정 시 깃털 감소
-        decrement_feather(user.id)
+        await decrement_feather(user.id)
 
         return existing_comment
     except HTTPException as http_ex:
@@ -487,7 +487,7 @@ async def read_post(
         await engine.save(new_comment)
 
         # 댓글 작성 시 깃털 감소
-        decrement_feather(user.id)
+        await decrement_feather(user.id)
 
         return new_comment
     except HTTPException as http_ex:
