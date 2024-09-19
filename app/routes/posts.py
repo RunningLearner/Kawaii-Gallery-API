@@ -116,7 +116,9 @@ async def create_post(
 
             # MediaFile 객체 생성 및 리스트에 추가
             file_object = MediaFile(
-                url=file_url, file_type=file_type.split("/")[0], thumbnail_url=thumbnail_url
+                url=file_url,
+                file_type=file_type.split("/")[0],
+                thumbnail_url=thumbnail_url,
             )
             file_objects.append(file_object)
 
@@ -148,12 +150,18 @@ async def create_post(
 
         return new_post
     except HTTPException as http_ex:
-        logger.error(f"게시글 생성 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})", exc_info=True)
+        logger.error(
+            f"게시글 생성 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"게시글 생성 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})", exc_info=True)
+        logger.error(
+            f"게시글 생성 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
@@ -183,6 +191,7 @@ async def read_post(engine: AIOEngine = Depends(db.get_engine)):
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
         )
+
 
 # 인기 게시글 상위 n+1개를 반환하는 엔드포인트
 @router.get("/popular", response_model=List[Post])
@@ -244,7 +253,9 @@ async def read_post(
         # 사용자가 존재하는지 확인
         user = await engine.find_one(User, User.id == user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+            raise HTTPException(
+                status_code=404, detail="사용자의 정보를 찾을 수 없습니다."
+            )
 
         # 수정할 댓글이 존재하는지 확인
         existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
@@ -266,12 +277,16 @@ async def read_post(
 
         return existing_comment
     except HTTPException as http_ex:
-        logger.error(f"댓글 수정 실패 사용자ID:{user_id} (댓글ID:{comment_id})", exc_info=True)
+        logger.error(
+            f"댓글 수정 실패 사용자ID:{user_id} (댓글ID:{comment_id})", exc_info=True
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"댓글 수정 실패 사용자ID:{user_id} (댓글ID:{comment_id})", exc_info=True)
+        logger.error(
+            f"댓글 수정 실패 사용자ID:{user_id} (댓글ID:{comment_id})", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
@@ -295,7 +310,7 @@ async def read_post(
         if not existing_comment:
             raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
 
-        # 관리자가 아닐시 
+        # 관리자가 아닐시
         if not is_admin:
             raise HTTPException(status_code=403, detail="관리자가 아닙니다.")
 
@@ -332,13 +347,12 @@ async def like_post(
     """
     이 엔드포인트는 특정 게시글에 좋아요를 추가하거나 취소합니다.
     """
-        try:
+    try:
         # 현재 사용자 가져오기
         user = await get_user_by_object_id(user_id)
 
         # 게시글 정보 가져오기
         post = await engine.find_one(Post, Post.id == post_id)
-
         if not post:
             raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
@@ -356,7 +370,9 @@ async def like_post(
             liked = True
 
             # 24시간 이내에 동일 사용자가 좋아요를 눌렀는지 확인
-            notification_exists = await redis.hexists(f"post:{post_id}:like_user", user_id)
+            notification_exists = await redis.hexists(
+                f"post:{post_id}:like_user", user_id
+            )
 
             # 캐싱되지 않았다면 추가
             if not notification_exists:
@@ -382,16 +398,23 @@ async def like_post(
 
         return {"liked": liked, "post": post}
     except HTTPException as http_ex:
-        logger.error(f"게시글 좋아요 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 좋아요 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}",
+            exc_info=True,
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"게시글 좋아요 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 좋아요 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}",
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
         )
+
 
 @router.get("/{post_id}/comments")
 async def read_post(
@@ -450,7 +473,9 @@ async def read_post(
 
         user = await engine.find_one(User, User.id == user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="사용자의 정보를 찾을 수 없습니다.")
+            raise HTTPException(
+                status_code=404, detail="사용자의 정보를 찾을 수 없습니다."
+            )
 
         # 댓글 생성
         new_comment = Comment(
@@ -466,12 +491,16 @@ async def read_post(
 
         return new_comment
     except HTTPException as http_ex:
-        logger.error(f"댓글 작성 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"댓글 작성 처리 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"댓글 작성 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"댓글 작성 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
@@ -495,12 +524,16 @@ async def read_post(
             raise HTTPException(status_code=404, detail="Post not found")
         return post
     except HTTPException as http_ex:
-        logger.error(f"게시글 세부 정보 가져오기 실패 게시글ID:{post_id}", exc_info=True)
+        logger.error(
+            f"게시글 세부 정보 가져오기 실패 게시글ID:{post_id}", exc_info=True
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"게시글 세부 정보 가져오기 실패 게시글ID:{post_id}", exc_info=True)
+        logger.error(
+            f"게시글 세부 정보 가져오기 실패 게시글ID:{post_id}", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
@@ -542,12 +575,16 @@ async def update_post(
         await engine.save(post)
         return post
     except HTTPException as http_ex:
-        logger.error(f"게시글 수정 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 수정 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"게시글 수정 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 수정 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
@@ -574,17 +611,23 @@ async def delete_post(
 
         # 작성자가 아니고, 관리자도 아닌 경우
         if post.user_id != user_id and not is_admin:
-            raise HTTPException(status_code=403, detail="작성자가 아니거나 관리자 권한이 없습니다.")
-        
+            raise HTTPException(
+                status_code=403, detail="작성자가 아니거나 관리자 권한이 없습니다."
+            )
+
         await engine.delete(post)
         return post
     except HTTPException as http_ex:
-        logger.error(f"게시글 삭제 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 삭제 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
 
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
-        logger.error(f"게시글 삭제 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True)
+        logger.error(
+            f"게시글 삭제 실패 게시글ID:{post_id} 사용자ID:{user_id}", exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
