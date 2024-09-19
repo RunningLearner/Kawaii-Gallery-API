@@ -486,9 +486,6 @@ async def read_post(
         )
         await engine.save(new_comment)
 
-        # 댓글 작성 시 깃털 감소
-        await decrement_feather(user.id)
-
         return new_comment
     except HTTPException as http_ex:
         logger.error(
