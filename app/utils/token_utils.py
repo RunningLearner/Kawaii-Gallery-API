@@ -53,13 +53,12 @@ async def get_current_user_id(request: Request) -> ObjectId:
         logger.error(f"JWTError occurred: {str(e)}", exc_info=True)
         raise HTTPException(status_code=401, detail="Invalid token")
 
-
 # 사용자가 관리자인지 확인하는 메서드
-async def verify_admin(user_id: ObjectId = Depends(get_current_user_id)) -> None:
-    user = await db.engine.find(User, User.id == user_id)
+async def verify_admin(user_id: ObjectId = Depends(get_current_user_id)) -> bool:
+    user = await db.engine.find_one(User, User.id == user_id)
 
     if user is None:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
     
-    if not user.is_admin:  # 사용자가 관리자가 아닌 경우
-        raise HTTPException(status_code=403, detail="관리자 권한이 없습니다.")
+    # 관리자인지 여부를 반환
+    return user.is_admin
