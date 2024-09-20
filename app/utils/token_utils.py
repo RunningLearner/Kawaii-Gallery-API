@@ -7,6 +7,7 @@ from odmantic import ObjectId
 import pytz
 
 from app.database.models.user import User
+from app.utils.dependancies import get_mongo_engine
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -54,7 +55,8 @@ async def get_current_user_id(request: Request) -> ObjectId:
 
 # 사용자가 관리자인지 확인하는 메서드
 async def verify_admin(user_id: ObjectId = Depends(get_current_user_id)) -> bool:
-    user = await db.engine.find_one(User, User.id == user_id)
+    engine = get_mongo_engine()
+    user = await engine.find_one(User, User.id == user_id)
 
     if user is None:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
