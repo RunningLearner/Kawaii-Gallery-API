@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from odmantic import AIOEngine
 from motor.motor_asyncio import AsyncIOMotorClient
+import redis.asyncio as aioredis
 import logging
 
 # 로거 설정
@@ -72,6 +73,7 @@ async def init_mongo(db_url: str, db_name: str) -> AIOEngine:
     engine = AIOEngine(client=client, database=db_name)
     return engine
 
+
 # MongoDB 클라이언트 종료 함수
 async def close_mongo(engine: AIOEngine):
     """
@@ -91,6 +93,7 @@ async def init_redis(redis_url: str) -> aioredis.Redis:
     """
     redis_client = await aioredis.from_url(redis_url, decode_responses=True)
     return redis_client
+
 
 # Redis 클라이언트 종료 함수
 async def close_redis(redis_client: aioredis.Redis):

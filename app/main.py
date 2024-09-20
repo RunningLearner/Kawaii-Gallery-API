@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
     app.state.mongo_engine = await init_mongo(db_url=c.DB_URL, db_name=c.DB_NAME)
 
     # Redis 클라이언트 초기화
-    app.state.redis = await init_redis(redis_url=c.redis_url)
+    app.state.redis_client = await init_redis(redis_url=c.redis_url)
 
     # 미들웨어 정의
 

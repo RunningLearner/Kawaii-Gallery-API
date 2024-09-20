@@ -7,7 +7,6 @@ from odmantic import ObjectId
 import pytz
 
 from app.database.models.user import User
-from app.database.conn import db
 
 # 로거 설정
 logger = logging.getLogger(__name__)

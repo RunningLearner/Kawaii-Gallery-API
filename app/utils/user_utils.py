@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from odmantic import AIOEngine, ObjectId
-from app.database.conn import db
+from app.utils.dependancies import get_mongo_engine
 from app.database.models.user import User
 
 
@@ -14,21 +14,22 @@ async def get_user_by_object_id(user_id: ObjectId) -> User:
 
 # 게시글 작성 시 깃털 증가 함수
 async def increment_feather(user_id: ObjectId, amount: int = 1) -> User:
+    engine = get_mongo_engine()
     user = await get_user_by_object_id(user_id)
     user.feather += amount  # 기본적으로 1만큼 증가
-    await db.engine.save(user)
+    await engine.save(user)
     return user
 
 
 # 댓글 생성/수정 시 깃털 감소 함수
 async def decrement_feather(user_id: ObjectId, amount: int = 1) -> User:
     user = await get_user_by_object_id(user_id)
-    
+    engine = get_mongo_engine()
     # 깃털이 부족한 경우
     if user.feather < amount:
         raise HTTPException(status_code=400, detail="깃털이 부족하여 댓글을 작성하거나 수정할 수 없습니다.")
     
     # 깃털 감소
     user.feather -= amount
-    await db.engine.save(user)
+    await engine.save(user)
     return user

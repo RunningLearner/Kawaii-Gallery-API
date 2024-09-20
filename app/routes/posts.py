@@ -13,12 +13,12 @@ from fastapi import (
 )
 from odmantic import AIOEngine, ObjectId
 import redis.asyncio as aioredis
-from app.database.conn import db
 from app.database.models.post import MediaFile, Post
 from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.media_utils import create_video_thumbnail
 from app.utils.settings import UPLOAD_DIRECTORY
+from app.utils.dependancies import get_mongo_engine
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
 from app.utils.time_util import get_seconds_until_midnight_kst
@@ -53,7 +53,7 @@ async def create_post(
     files: List[UploadFile] = File(
         ..., description="업로드할 이미지 또는 비디오 파일들"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     try:
@@ -170,7 +170,7 @@ async def create_post(
 
 # Read - 모든 게시글 조회
 @router.get("/")
-async def read_post(engine: AIOEngine = Depends(db.get_engine)):
+async def read_post(engine: AIOEngine = Depends(get_mongo_engine)):
     """
     이 엔드포인트는 모든 게시글을 조회합니다.
     결과는 생성일 기준으로 정렬됩니다.
@@ -196,7 +196,7 @@ async def read_post(engine: AIOEngine = Depends(db.get_engine)):
 # 인기 게시글 상위 n+1개를 반환하는 엔드포인트
 @router.get("/popular", response_model=List[Post])
 async def get_popular_posts(
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
 ):
     """
@@ -243,7 +243,7 @@ async def read_post(
     comment_id: ObjectId = Path(
         ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
@@ -298,7 +298,7 @@ async def read_post(
     comment_id: ObjectId = Path(
         ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     is_admin: bool = Depends(verify_admin),
 ):
     """
@@ -340,7 +340,7 @@ async def like_post(
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 ID
     redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
 ):
@@ -421,7 +421,7 @@ async def read_post(
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
 ):
     """
     이 엔드포인트는 특정 게시글의 모든 댓글 목록을 반환합니다.
@@ -458,7 +458,7 @@ async def read_post(
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
@@ -510,7 +510,7 @@ async def read_post(
     post_id: ObjectId = Path(
         ..., description="조회할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
 ):
     try:
         """
@@ -544,7 +544,7 @@ async def update_post(
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
@@ -594,7 +594,7 @@ async def delete_post(
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
     is_admin: bool = Depends(verify_admin),
 ):

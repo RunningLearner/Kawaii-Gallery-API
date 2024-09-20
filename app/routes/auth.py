@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 import logging
 from odmantic import AIOEngine
-from app.database.conn import db
 from app.database.models.token import FCMToken
 from app.database.models.user import User
 from app.dtos.auth import FCMTokenCreate
 from app.dtos.user import UserCreate
+from app.utils.dependancies import get_mongo_engine
 from app.utils.token_utils import create_access_token, get_current_user_id
 import requests
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/auth")
 @router.post("/login/kakao")
 async def kakao_login(
     access_token: str = Body(..., embed=True),
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
 ):
     # 이메일 정보
     email = get_user_email(access_token)
@@ -45,7 +45,7 @@ async def kakao_login(
 @router.post("/register")
 async def register(
     user_info: UserCreate,
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
 ):
     email = get_user_email(user_info.access_token)
 
@@ -77,7 +77,7 @@ async def register(
 @router.post("/fcmtoken")
 async def create_fcm_token(
     token_info: FCMTokenCreate,
-    engine: AIOEngine = Depends(db.get_engine),
+    engine: AIOEngine = Depends(get_mongo_engine),
     user_id: str = Depends(get_current_user_id),
 ):
     # 사용자 조회
