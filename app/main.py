@@ -7,7 +7,7 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from app.utils.settings import UPLOAD_DIRECTORY
-from app.database.conn import db
+from app.database.conn import init_mongo, close_mongo,init_redis,close_redis
 from app.common.config import conf
 from app.routes import index, auth, posts, user
 from contextlib import asynccontextmanager
@@ -30,16 +30,14 @@ async def lifespan(app: FastAPI):
     )
 
     c = conf()
-    conf_dict = asdict(c)
-    logging.info(conf_dict)
-    print(conf_dict)
+    print(c)
     # 데이터 베이스 이니셜라이즈
-    db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
-    await db.connect()
+    # db.init_app(app, **conf_dict)  # 먼저 init_app을 호출하여 설정 값을 초기화
+    # await db.connect()
+    app.state.mongo_engine = await init_mongo(db_url=c.DB_URL, db_name=c.DB_NAME)
 
     # Redis 클라이언트 초기화
-    redis_client = aioredis.Redis(host="localhost", port=6379, db=0)
-    app.state.redis = redis_client  # 애플리케이션의 상태에 Redis 클라이언트 저장
+    app.state.redis = await init_redis(redis_url=c.redis_url)
 
     # 미들웨어 정의
 
@@ -48,8 +46,10 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    await redis_client.close()
-    await db.close()
+    # await redis_client.close()
+    # await db.close()
+    await close_mongo(app.state.mongo_engine)
+    await close_redis(app.state.redis)
 
 
 def create_app():
