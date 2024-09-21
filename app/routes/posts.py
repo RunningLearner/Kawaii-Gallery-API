@@ -139,7 +139,7 @@ async def create_post(
         )
 
         # 게시글 작성 시 깃털 증가
-        await increment_feather(user.id)
+        await increment_feather(engine, user.id)
 
         new_post = await engine.save(new_post)
 
@@ -273,7 +273,7 @@ async def read_post(
         await engine.save(existing_comment)
 
         # 댓글 수정 시 깃털 감소
-        await decrement_feather(user.id)
+        await decrement_feather(engine, user.id)
 
         return existing_comment
     except HTTPException as http_ex:
@@ -349,7 +349,7 @@ async def like_post(
     """
     try:
         # 현재 사용자 가져오기
-        user = await get_user_by_object_id(user_id)
+        user = await get_user_by_object_id(engine, user_id)
 
         # 게시글 정보 가져오기
         post = await engine.find_one(Post, Post.id == post_id)
