@@ -18,7 +18,7 @@ async def get_user_by_object_id(engine: AIOEngine, user_id: ObjectId) -> User:
 async def increment_feather(
     engine: AIOEngine, user_id: ObjectId, amount: int = 1
 ) -> User:
-    user = await get_user_by_object_id(user_id)
+    user = await get_user_by_object_id(engine, user_id)
     user.feather += amount  # 기본적으로 1만큼 증가
     await engine.save(user)
     return user
@@ -28,7 +28,7 @@ async def increment_feather(
 async def decrement_feather(
     engine: AIOEngine, user_id: ObjectId, amount: int = 1
 ) -> User:
-    user = await get_user_by_object_id(user_id)
+    user = await get_user_by_object_id(engine, user_id)
     # 깃털이 부족한 경우
     if user.feather < amount:
         raise HTTPException(
