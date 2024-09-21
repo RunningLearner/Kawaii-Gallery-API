@@ -18,7 +18,7 @@ from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.media_utils import create_video_thumbnail
 from app.utils.settings import UPLOAD_DIRECTORY
-from app.utils.dependancies import get_mongo_engine
+from app.utils.dependancies import get_mongo_engine, get_redis_client
 import os
 from app.dtos.post import CreateComment, PostUpdate, UpdateComment
 from app.utils.time_util import get_seconds_until_midnight_kst
@@ -33,11 +33,6 @@ from app.utils.token_utils import get_current_user_id, verify_admin
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/post")
 MAX_VIDEO_SIZE = 30 * 1024 * 1024  # 50MB
-
-
-# FastAPI의 Request 객체를 통해 Redis 인스턴스에 접근
-async def get_redis(request: Request) -> aioredis.Redis:
-    return request.app.state.redis
 
 
 # Create - 게시글 생성
@@ -197,7 +192,7 @@ async def read_post(engine: AIOEngine = Depends(get_mongo_engine)):
 @router.get("/popular", response_model=List[Post])
 async def get_popular_posts(
     engine: AIOEngine = Depends(get_mongo_engine),
-    redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
+    redis: aioredis.Redis = Depends(get_redis_client),  # Redis 인스턴스 의존성
 ):
     """
     일간 인기순위 상위의 게시글을 반환합니다.
@@ -347,7 +342,7 @@ async def like_post(
     ),
     engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),  # 현재 사용자 ID
-    redis: aioredis.Redis = Depends(get_redis),  # Redis 인스턴스 의존성
+    redis: aioredis.Redis = Depends(get_redis_client),  # Redis 인스턴스 의존성
 ):
     """
     이 엔드포인트는 특정 게시글에 좋아요를 추가하거나 취소합니다.
