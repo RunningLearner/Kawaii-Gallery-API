@@ -1,12 +1,10 @@
 import requests
 import os
 import firebase_admin
-from odmantic import ObjectId
+from odmantic import AIOEngine, ObjectId
 from app.database.models.user import User
 from app.database.models.token import FCMToken
 from firebase_admin import credentials, initialize_app, messaging
-
-from app.utils.dependancies import get_mongo_engine
 
 # FCM 서버 키는 Firebase 콘솔에서 발급받아야 합니다.
 SCOPES = "https://www.googleapis.com/auth/firebase.messaging"
@@ -16,8 +14,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 
 default_app = firebase_admin.initialize_app()
 
-async def send_like_notification(user_id: ObjectId, post_title: str):
-    engine = get_mongo_engine()
+async def send_like_notification(engine: AIOEngine, user_id: ObjectId, post_title: str):
     # 해당 사용자에게 등록된 모든 FCM 토큰 가져오기
     tokens = await engine.find(FCMToken, FCMToken.user_id == user_id)
 

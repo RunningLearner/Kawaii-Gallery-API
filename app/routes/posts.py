@@ -299,7 +299,7 @@ async def read_post(
         ..., description="수정할 댓글글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
     ),
     engine: AIOEngine = Depends(get_mongo_engine),
-    is_admin: bool = Depends(verify_admin),
+    user_id: ObjectId = Depends(get_current_user_id),
 ):
     """
     이 엔드포인트는 특정 게시글에 특정 댓글을 블라인드합니다.
@@ -309,6 +309,8 @@ async def read_post(
         existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
         if not existing_comment:
             raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+        
+        is_admin: bool = verify_admin(engine, user_id),
 
         # 관리자가 아닐시
         if not is_admin:
@@ -596,7 +598,6 @@ async def delete_post(
     ),
     engine: AIOEngine = Depends(get_mongo_engine),
     user_id: ObjectId = Depends(get_current_user_id),
-    is_admin: bool = Depends(verify_admin),
 ):
     """
     이 엔드포인트는 특정 게시글을 삭제합니다.
@@ -605,6 +606,8 @@ async def delete_post(
         post = await engine.find_one(Post, Post.id == post_id)
         if not post:
             raise HTTPException(status_code=404, detail="게시글이 존재하지 않습니다.")
+        
+        is_admin: bool = verify_admin(engine, user_id),
 
         # 작성자가 아니고, 관리자도 아닌 경우
         if post.user_id != user_id and not is_admin:

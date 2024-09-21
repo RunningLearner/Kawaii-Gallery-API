@@ -3,11 +3,10 @@ import logging
 from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
-from odmantic import ObjectId
+from odmantic import AIOEngine, ObjectId
 import pytz
 
 from app.database.models.user import User
-from app.utils.dependancies import get_mongo_engine
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -54,8 +53,7 @@ async def get_current_user_id(request: Request) -> ObjectId:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # 사용자가 관리자인지 확인하는 메서드
-async def verify_admin(user_id: ObjectId = Depends(get_current_user_id)) -> bool:
-    engine = get_mongo_engine()
+async def verify_admin(engine: AIOEngine, user_id: ObjectId) -> bool:
     user = await engine.find_one(User, User.id == user_id)
 
     if user is None:

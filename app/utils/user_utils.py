@@ -1,6 +1,5 @@
 from fastapi import HTTPException
 from odmantic import AIOEngine, ObjectId
-from app.utils.dependancies import get_mongo_engine
 from app.database.models.user import User
 
 
