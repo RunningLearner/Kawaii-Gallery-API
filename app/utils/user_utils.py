@@ -6,7 +6,6 @@ from app.database.models.user import User
 
 # id를 이용해 사용자를 가져오는 함수
 async def get_user_by_object_id(engine: AIOEngine, user_id: ObjectId) -> User:
-    engine = get_mongo_engine()
     user = await engine.find_one(User, User.id == user_id)
     if user is None:
         raise HTTPException(
@@ -19,7 +18,6 @@ async def get_user_by_object_id(engine: AIOEngine, user_id: ObjectId) -> User:
 async def increment_feather(
     engine: AIOEngine, user_id: ObjectId, amount: int = 1
 ) -> User:
-    engine = get_mongo_engine()
     user = await get_user_by_object_id(user_id)
     user.feather += amount  # 기본적으로 1만큼 증가
     await engine.save(user)
@@ -31,7 +29,6 @@ async def decrement_feather(
     engine: AIOEngine, user_id: ObjectId, amount: int = 1
 ) -> User:
     user = await get_user_by_object_id(user_id)
-    engine = get_mongo_engine()
     # 깃털이 부족한 경우
     if user.feather < amount:
         raise HTTPException(
