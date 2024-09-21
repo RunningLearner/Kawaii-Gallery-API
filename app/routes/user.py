@@ -215,7 +215,7 @@ async def get_user_by_id(
                 status_code=404, detail=f"ID가 '{user_id}'인 사용자를 찾을 수 없습니다."
             )
         # Pydantic 모델로 변환
-        user_response = UserResponseModel.from_odmantic(user)
+        user_response = UserResponseModel(user)
 
         # 변환된 데이터 로깅
         logger.info(f"변환된 사용자 데이터: {user_response}")

@@ -28,10 +28,10 @@ class UserUpdate(BaseModel):
 
 # 사용자 조회 시 반환되는 모델
 class UserResponseModel(BaseModel):
-    id: str = Field(..., description="사용자의 고유 ID")
+    id: ObjectId = Field(..., description="사용자의 고유 ID")
     nick_name: str = Field(..., description="사용자의 닉네임")
     email: str = Field(..., description="사용자의 이메일")
-    feather: str = Field(..., description="보유 깃털 수")
+    feather: int = Field(..., description="보유 깃털 수")
     profile_image_url: Optional[str] = Field(
         None, description="사용자의 프로필 이미지 URL"
     )
@@ -39,16 +39,16 @@ class UserResponseModel(BaseModel):
     class Config:
         from_attributes = True
 
-    @classmethod
-    def from_odmantic(cls, obj):
-        # Odmantic 모델의 ObjectId를 문자열로 변환하고 나머지 데이터를 Pydantic 모델로 반환
-        return cls(
-            id=str(obj.id),  # ObjectId를 문자열로 변환
-            nick_name=obj.nick_name,
-            email=obj.email,
-            profile_image_url=obj.profile_image_url,
-            feather=obj.feather
-        )
+    # @classmethod
+    # def from_odmantic(cls, obj):
+    #     # Odmantic 모델의 ObjectId를 문자열로 변환하고 나머지 데이터를 Pydantic 모델로 반환
+    #     return cls(
+    #         id=str(obj.id),  # ObjectId를 문자열로 변환
+    #         nick_name=obj.nick_name,
+    #         email=obj.email,
+    #         profile_image_url=obj.profile_image_url,
+    #         feather=str(obj.feather)
+    #     )
 
 
 # 모든 사용자 조회 시 반환되는 모델
