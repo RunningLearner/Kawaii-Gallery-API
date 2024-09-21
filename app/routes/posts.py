@@ -145,7 +145,7 @@ async def create_post(
 
         # 로그 출력
         logger.info(
-            f"새 게시글이 생성되었습니다: 제목 - {new_post.title}, 작성자 - {new_post.nick_name}"
+            f"새 게시글 생성 성공. 제목:{new_post.title}, 작성자:{new_post.nick_name}, 현재 보유 깃털:{user.feather}"
         )
 
         return new_post
@@ -274,6 +274,9 @@ async def read_post(
 
         # 댓글 수정 시 깃털 감소
         await decrement_feather(engine, user.id)
+        logger.info(
+            f"댓글 수정 성공. 사용자:{user.nick_name}, 댓글ID:{comment_id}, 보유 깃털:{user.feather})"
+        )
 
         return existing_comment
     except HTTPException as http_ex:
@@ -309,8 +312,8 @@ async def read_post(
         existing_comment = await engine.find_one(Comment, Comment.id == comment_id)
         if not existing_comment:
             raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
-        
-        is_admin: bool = verify_admin(engine, user_id),
+
+        is_admin: bool = (verify_admin(engine, user_id),)
 
         # 관리자가 아닐시
         if not is_admin:
@@ -606,8 +609,8 @@ async def delete_post(
         post = await engine.find_one(Post, Post.id == post_id)
         if not post:
             raise HTTPException(status_code=404, detail="게시글이 존재하지 않습니다.")
-        
-        is_admin: bool = verify_admin(engine, user_id),
+
+        is_admin: bool = (verify_admin(engine, user_id),)
 
         # 작성자가 아니고, 관리자도 아닌 경우
         if post.user_id != user_id and not is_admin:
