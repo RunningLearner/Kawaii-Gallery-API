@@ -31,6 +31,7 @@ class UserResponseModel(BaseModel):
     id: str = Field(..., description="사용자의 고유 ID")
     nick_name: str = Field(..., description="사용자의 닉네임")
     email: str = Field(..., description="사용자의 이메일")
+    feather: str = Field(..., description="보유 깃털 수")
     profile_image_url: Optional[str] = Field(
         None, description="사용자의 프로필 이미지 URL"
     )
@@ -46,6 +47,7 @@ class UserResponseModel(BaseModel):
             nick_name=obj.nick_name,
             email=obj.email,
             profile_image_url=obj.profile_image_url,
+            feather=obj.feather
         )
 
 
