@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 
@@ -33,7 +33,7 @@ def get_seconds_until_midnight_kst():
     now = datetime.now(KST)
 
     # 다음 자정 계산
-    next_midnight = (now + datetime.timedelta(days=1)).replace(
+    next_midnight = (now + timedelta(days=1)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
 
