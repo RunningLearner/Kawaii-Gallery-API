@@ -427,7 +427,7 @@ async def like_post(
 
             # 24시간 이내에 동일 사용자가 좋아요를 눌렀는지 확인
             notification_exists = await redis.hexists(
-                f"post:{str(post_id)}:like_user", user_id
+                f"post:{str(post_id)}:like_user", str(user_id)
             )
 
             # 캐싱되지 않았다면 추가
