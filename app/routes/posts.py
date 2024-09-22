@@ -425,18 +425,19 @@ async def like_post(
             post.likes_count += 1
             liked = True
 
+            # redis용 문자열
+            str_post_id = str(post_id)
+            str_user_id = str(user_id)
+
             # 24시간 이내에 동일 사용자가 좋아요를 눌렀는지 확인
             notification_exists = await redis.hexists(
-                f"post:{str(post_id)}:like_user", str(user_id)
+                f"post:{str_post_id}:like_user", str_user_id
             )
 
             # 캐싱되지 않았다면 추가
             if not notification_exists:
                 # TODO: 게시글 작성자에게 좋아요 알림 보내기 (이 부분은 구현 필요)
                 print(f"게시글 {post_id}에 좋아요 알림이 전송되었습니다.")
-
-                str_post_id = str(post_id)
-                str_user_id = str(user_id)
 
                 # HSET으로 유저 정보를 저장
                 await redis.hset(f"post:{str_post_id}:like_user", str_user_id, "notified")
