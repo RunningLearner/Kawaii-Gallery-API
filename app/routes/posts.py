@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+import re
 from typing import List, Optional
 from fastapi import (
     APIRouter,
@@ -215,14 +216,10 @@ async def read_post(
     try:
         query = {}
         
-        # 검색어가 있을 경우 제목과 태그에서 검색
+         # 검색어가 있을 경우 제목과 태그에서 검색 (odmantic 방식으로)
         if search:
-            query = {
-                "$or": [
-                    {"title": {"$regex": search, "$options": "i"}},  # 대소문자 구분 없이 제목에서 검색
-                    {"tags": {"$regex": search, "$options": "i"}}  # 대소문자 구분 없이 태그에서 검색
-                ]
-            }
+            regex = re.compile(search, re.IGNORECASE)  # 대소문자 구분 없이 정규 표현식 생성
+            query = {"$or": [Post.title.match(regex), Post.tags.match(regex)]}
 
         # 정렬 기준 설정
         sort_field = Post.created_at if sort_by == "created_at" else Post.likes_count
