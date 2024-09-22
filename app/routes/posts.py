@@ -413,15 +413,15 @@ async def like_post(
             raise HTTPException(status_code=404, detail="게시글을 찾을 수 없습니다.")
 
         # 이미 좋아요를 눌렀는지 확인
-        if user.id in post.liked_by:
+        if user.id in post.liked_users_id:
             # 이미 좋아요를 눌렀다면, 좋아요 취소
-            post.liked_by.remove(user.id)
+            post.liked_users_id.remove(user.id)
             post.likes_count -= 1
             liked = False
 
         else:
             # 좋아요 추가
-            post.liked_by.append(user.id)
+            post.liked_users_id.append(user.id)
             post.likes_count += 1
             liked = True
 
