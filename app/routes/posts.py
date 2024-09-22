@@ -435,17 +435,20 @@ async def like_post(
                 # TODO: 게시글 작성자에게 좋아요 알림 보내기 (이 부분은 구현 필요)
                 print(f"게시글 {post_id}에 좋아요 알림이 전송되었습니다.")
 
+                str_post_id = str(post_id)
+                str_user_id = str(user_id)
+
                 # HSET으로 유저 정보를 저장
-                await redis.hset(f"post:{post_id}:like_user", user_id, "notified")
+                await redis.hset(f"post:{str_post_id}:like_user", str_user_id, "notified")
 
                 # 한국 시간 기준으로 자정까지 남은 시간 계산
                 seconds_until_midnight = get_seconds_until_midnight_kst()
 
                 # 다음 00시까지 남은 시간 동안 만료 설정
-                await redis.expire(f"post:{post_id}:like_user", seconds_until_midnight)
+                await redis.expire(f"post:{str_post_id}:like_user", seconds_until_midnight)
 
                 # ZSET에 좋아요 증가 기록 추가
-                await redis.zincrby("popular_posts", 1, f"{post_id}")
+                await redis.zincrby("popular_posts", 1, f"{str_post_id}")
 
                 # ZSET 만료 시간 설정 (자정까지 남은 시간)
                 await redis.expire("popular_posts", seconds_until_midnight)
