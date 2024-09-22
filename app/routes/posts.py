@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import List
+from typing import List, Optional
 from fastapi import (
     APIRouter,
     File,
@@ -8,6 +8,7 @@ from fastapi import (
     HTTPException,
     Depends,
     Path,
+    Query,
     Request,
     UploadFile,
 )
@@ -182,6 +183,64 @@ async def read_post(engine: AIOEngine = Depends(get_mongo_engine)):
         raise http_ex
     except Exception as ex:
         logger.error(f"게시글 전체 조회 실패", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="서버 내부 오류가 발생했습니다.",
+        )
+
+
+# Read - 모든 게시글 조회
+@router.get("/search")
+async def read_post(
+    search: Optional[str] = Query(
+        None, description="게시글 제목 또는 태그에 포함될 검색어"
+    ),
+    sort_by: str = Query(
+        "created_at",
+        enum=["created_at", "likes"],
+        description="정렬 기준 (created_at: 최신순, likes: 좋아요 많은 순)",
+    ),
+    engine: AIOEngine = Depends(get_mongo_engine),
+):
+    """
+    이 엔드포인트는 게시글을 검색합니다.
+    제목 또는 태그에 검색어가 포함된 게시글만 조회하며,
+    결과는 최신순 혹은 좋아요 많은 순으로 정렬됩니다.
+    """
+    # try:
+    #     posts = await engine.find(Post, sort=Post.created_at)
+    #     if not posts:
+    #         raise HTTPException(status_code=404, detail="Post not found")
+    #     return posts
+    try:
+        query = {}
+        
+        # 검색어가 있을 경우 제목과 태그에서 검색
+        if search:
+            query = {
+                "$or": [
+                    {"title": {"$regex": search, "$options": "i"}},  # 대소문자 구분 없이 제목에서 검색
+                    {"tags": {"$regex": search, "$options": "i"}}  # 대소문자 구분 없이 태그에서 검색
+                ]
+            }
+
+        # 정렬 기준 설정
+        sort_field = Post.created_at if sort_by == "created_at" else Post.likes_count
+        
+        # 검색 및 정렬된 결과 가져오기
+        posts = await engine.find(Post, query, sort=sort_field)
+
+        if not posts:
+            raise HTTPException(status_code=404, detail="Post not found")
+        return posts
+
+    except HTTPException as http_ex:
+        logger.error(f"게시글 검색 및 조회 실패", exc_info=True)
+
+        # http 에러는 다시 raise해서 그대로 클라이언트에 전달
+        raise http_ex
+    except Exception as ex:
+        logger.error(f"게시글 검색 및 조회 실패", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
