@@ -12,5 +12,6 @@ class User(Model):
     is_admin: bool = False  # 관리자 여부, 기본값 False
     created_at: datetime = Field(default_factory=get_current_time) # 생성 시간
     profile_image_url: Optional[str] = None # 파일 url 저장 필드
+    profile_image_path: Optional[str] = None # 파일 url 저장 필드
 
     model_config = {"collection": "users"}

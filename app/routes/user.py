@@ -11,6 +11,7 @@ from app.dtos.user import (
     UserUpdate,
 )
 from app.utils.dependancies import get_mongo_engine
+from app.utils.settings import UPLOAD_DIRECTORY
 from app.utils.token_utils import get_current_user_id
 
 import logging
@@ -156,12 +157,13 @@ async def update_user_profile_image(
                 status_code=400, detail="이미지 파일만 업로드 가능합니다."
             )
 
+        new_filename = f"{user_id}_{file.filename}"
+
         # 저장할 경로 설정
-        upload_directory = "uploads/profile_images"
-        os.makedirs(upload_directory, exist_ok=True)  # 디렉터리가 없으면 생성
+        file_path = os.path.join(UPLOAD_DIRECTORY, "profile_images", new_filename)
+        file_url = f"/static/profile_images/{new_filename}"
 
-        file_path = os.path.join(upload_directory, f"{user_id}_{file.filename}")
-
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)  # 디렉터리가 없으면 생성
         # 파일 저장
         with open(file_path, "wb") as buffer:
             buffer.write(await file.read())
@@ -172,16 +174,17 @@ async def update_user_profile_image(
                 os.remove(user.profile_image_url)
 
         # 사용자 프로필 이미지 경로 업데이트
-        user.profile_image_url = file_path
+        user.profile_image_url = file_url
+        user.profile_image_path = file_path
         await engine.save(user)
 
         logger.info(
-            f"사용자 프로필 이미지 업데이트 완료: {user.nick_name} ({user.email})"
+            f"사용자 프로필 이미지 업데이트 완료: {user.nick_name} (이메일: {user.email}), (경로: {user.profile_image_path})"
         )
 
         return {
             "msg": "프로필 이미지가 업데이트되었습니다.",
-            "profile_image_url": file_path,
+            "profile_image_url": file_url,
         }
     except HTTPException as http_ex:
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
