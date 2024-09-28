@@ -11,7 +11,7 @@ from app.database.conn import init_mongo, close_mongo,init_redis,close_redis
 from app.common.config import conf
 from app.routes import index, auth, posts, user
 from contextlib import asynccontextmanager
-from app.utils.like_utils import send_like_notification_test
+from app.utils.notification_utils import send_like_notification_test
 
 
 @asynccontextmanager

@@ -19,6 +19,7 @@ from app.database.models.post import MediaFile, Post
 from app.database.models.user import User
 from app.database.models.comment import Comment
 from app.utils.media_utils import create_video_thumbnail
+from app.utils.notification_utils import send_comment_notification, send_like_notification
 from app.utils.settings import UPLOAD_DIRECTORY
 from app.utils.dependancies import get_mongo_engine, get_redis_client
 import os
@@ -456,6 +457,9 @@ async def like_post(
 
         await engine.save(post)
 
+        # 좋아요 알림 발송
+        send_like_notification(engine, user_id, post_id)
+
         return {"liked": liked, "post": post}
     except HTTPException as http_ex:
         logger.error(
@@ -545,6 +549,9 @@ async def read_post(
             post_id=post_id,
         )
         await engine.save(new_comment)
+
+        # 댓글 알림을 작성자에게 전송합니다.
+        send_comment_notification(engine, user.id, post.id)
 
         return new_comment
     except HTTPException as http_ex:
