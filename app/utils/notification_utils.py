@@ -32,7 +32,7 @@ async def send_fcm_notification(engine: AIOEngine, user_id: ObjectId, post_id: O
         print("No FCM tokens found for user")
         return
     
-    user: User = await get_user_by_object_id(user_id)
+    user: User = await get_user_by_object_id(engine, user_id)
 
     # FCM 메시지 페이로드 구성
     notification_data = {

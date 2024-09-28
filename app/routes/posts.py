@@ -437,8 +437,11 @@ async def like_post(
 
             # 캐싱되지 않았다면 추가
             if not notification_exists:
-                # TODO: 게시글 작성자에게 좋아요 알림 보내기 (이 부분은 구현 필요)
-                print(f"게시글 {post_id}에 좋아요 알림이 전송되었습니다.")
+                # 좋아요 알림 발송
+                await send_like_notification(engine, user_id, post_id)
+
+                # 알림 성공적으로 발송 시
+                logger.info(f"좋아요 알림 전송 성공: 사용자 ID - {user_id}, 게시글 ID - {post_id}")
 
                 # HSET으로 유저 정보를 저장
                 await redis.hset(f"post:{str_post_id}:like_user", str_user_id, "notified")
@@ -456,11 +459,6 @@ async def like_post(
                 await redis.expire("popular_posts", seconds_until_midnight)
 
         await engine.save(post)
-
-        # 좋아요 알림 발송
-        if not user_id or not post_id:
-            raise HTTPException(status_code=404, detail="게시글 혹은 사용자를 찾을 수 없습니다.")
-        await send_like_notification(engine, user_id, post_id)
 
         return {"liked": liked, "post": post}
     except HTTPException as http_ex:
