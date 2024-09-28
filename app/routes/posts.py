@@ -458,6 +458,8 @@ async def like_post(
         await engine.save(post)
 
         # 좋아요 알림 발송
+        if not user_id or not post_id:
+            raise HTTPException(status_code=404, detail="게시글 혹은 사용자를 찾을 수 없습니다.")
         await send_like_notification(engine, user_id, post_id)
 
         return {"liked": liked, "post": post}
