@@ -11,7 +11,6 @@ from app.database.conn import init_mongo, close_mongo,init_redis,close_redis
 from app.common.config import conf
 from app.routes import index, auth, posts, user
 from contextlib import asynccontextmanager
-from app.utils.notification_utils import send_like_notification_test
 
 
 @asynccontextmanager
@@ -87,17 +86,6 @@ app.include_router(user.router, tags=["User"], prefix="/api")
 
 
 # test endpoints
-@app.get("/test-notification")
-def test_notification_endpoint():
-    try:
-        # 테스트 알림 함수 실행
-        send_like_notification_test()
-        return {"status": "Notification sent successfully"}
-    except Exception as e:
-        # 예외 발생 시 에러 메시지 반환
-        print(status_code=500, detail=str(e))
-
-
 @app.post("/test_set_redis")
 async def set_redis_data(request: Request):
     data = await request.json()
