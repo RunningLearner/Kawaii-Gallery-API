@@ -458,7 +458,7 @@ async def like_post(
         await engine.save(post)
 
         # 좋아요 알림 발송
-        send_like_notification(engine, user_id, post_id)
+        await send_like_notification(engine, user_id, post_id)
 
         return {"liked": liked, "post": post}
     except HTTPException as http_ex:
@@ -517,7 +517,7 @@ async def read_post(
 
 
 @router.post("/{post_id}/comment")
-async def read_post(
+async def create_comment(
     comment: CreateComment,
     post_id: ObjectId = Path(
         ..., description="수정할 게시글의 고유 ID", example="614c1b5f27f3b87636d1c2a5"
@@ -551,7 +551,7 @@ async def read_post(
         await engine.save(new_comment)
 
         # 댓글 알림을 작성자에게 전송합니다.
-        send_comment_notification(engine, user.id, post.id)
+        await send_comment_notification(engine, user.id, post.id)
 
         return new_comment
     except HTTPException as http_ex:
