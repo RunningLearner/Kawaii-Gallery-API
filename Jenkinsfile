@@ -3,6 +3,7 @@ pipeline {
     environment {
         COMPOSE_FILE = 'docker-compose.yml' // Docker Compose 파일 이름
         API_ENV = 'prod' // 환경 변수 설정
+        FIREBASE_KEY_CRED = credentials('firebase_keyfile_kawaii_gallery') // Firebase 키 파일 크리덴셜
     }
     stages {
         stage('Checkout') {
@@ -17,6 +18,9 @@ pipeline {
                     // .env 파일 생성 (Jenkins 환경 변수에서 값 설정)
                     writeFile file: '.env', text: "API_ENV=${API_ENV}\n"
                     
+                    // Firebase 크리덴셜 파일 생성 (컨테이너에 복사할 준비)
+                    writeFile file: 'firebase-adminsdk.json', text: "${FIREBASE_KEY_CRED}"
+
                     // 호스트의 현재 작업 디렉토리 확인
                     sh 'pwd'
 
