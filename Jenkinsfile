@@ -3,13 +3,23 @@ pipeline {
     environment {
         COMPOSE_FILE = 'docker-compose.yml' // Docker Compose 파일 이름
         API_ENV = 'prod' // 환경 변수 설정
-        FIREBASE_KEY_CRED = credentials('firebase_keyfile_kawaii_gallery') // Firebase 키 파일 크리덴셜
     }
     stages {
         stage('Checkout') {
             steps {
                 // GitHub에서 최신 코드 체크아웃
                 git branch: 'main', credentialsId: 'github_access_token', url: 'https://github.com/RunningLearner/Kawaii-Gallery-API.git'
+            }
+        }
+        stage('Prepare Firebase Key') {
+            steps {
+                script {
+                    // Firebase 크리덴셜 파일을 임시 경로에서 복사
+                    withCredentials([file(credentialsId: 'firebase_keyfile_kawaii_gallery', variable: 'FIREBASE_KEY_PATH')]) {
+                        // Firebase 키 파일을 복사하여 workspace에 저장
+                        sh 'cp $FIREBASE_KEY_PATH firebase-adminsdk.json'
+                    }
+                }
             }
         }
         stage('Build and Deploy') {
