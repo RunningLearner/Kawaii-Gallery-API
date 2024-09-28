@@ -117,6 +117,7 @@ async def create_fcm_token(
         if existing_token:
             existing_token.fcm_token = token_info.fcm_token
             await engine.save(existing_token)
+            logger.info(f"기존 FCM 토큰 업데이트 완료: 사용자 ID - {user.id}, 닉네임 - {user.nick_name}")
         else:
             # 새로운 FCM 토큰 생성
             new_token = FCMToken(
@@ -124,6 +125,7 @@ async def create_fcm_token(
                 fcm_token=token_info.fcm_token,
             )
             await engine.save(new_token)
+            logger.info(f"새로운 FCM 토큰 저장 완료: 사용자 ID - {user.id}, 닉네임 - {user.nick_name}")
 
         return {"message": "FCM token이 저장되었습니다."}
 
