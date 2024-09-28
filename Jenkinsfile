@@ -17,7 +17,7 @@ pipeline {
                     // Firebase 크리덴셜 파일을 임시 경로에서 복사
                     withCredentials([file(credentialsId: 'firebase_keyfile_kawaii_gallery', variable: 'FIREBASE_KEY_PATH')]) {
                         // Firebase 키 파일을 복사하여 workspace에 저장
-                        sh 'cp $FIREBASE_KEY_PATH firebase-adminsdk.json'
+                        sh 'cp $FIREBASE_KEY_PATH firebase_kawaii_gallery.json'
                     }
                 }
             }

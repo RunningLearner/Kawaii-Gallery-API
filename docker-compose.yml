@@ -15,7 +15,7 @@ services:
     volumes:
       - /home/adminuser/jenkins/jenkins/workspace/kawaii_gallery_fastapi/app:/app/app  # 호스트의 app 폴더를 컨테이너의 /app에 연결
       - /home/adminuser/jenkins/jenkins/workspace/kawaii_gallery_fastapi/uploads:/app/uploads  # 호스트의 uploads 폴더를 컨테이너의 /app/uploads에 연결
-      - /home/adminuser/jenkins/jenkins/workspace/kawaii_gallery_fastapi/firebase-adminsdk.json:/app/firebase-adminsdk.json # Firebase 키 파일을 컨테이너 내부에 복사
+      - /home/adminuser/jenkins/jenkins/workspace/kawaii_gallery_fastapi/firebase_kawaii_gallery.json:/app/firebase_kawaii_gallery.json # Firebase 키 파일을 컨테이너 내부에 복사
     # 경로 확인 후 uvicorn 실행
     # sh -c 'ls /app/app && echo "Current directory: $(pwd)" && uvicorn main:app --host 0.0.0.0 --port 8000'
     command: >
