@@ -94,12 +94,12 @@ async def check_in(
             "nick_name": user.nick_name,
         }
     except HTTPException as http_ex:
-        logger.error(f"출석 체크 중 오류 발생: {user.nick_name}", exc_info=True)
+        logger.error(f"출석 체크 중 오류 발생: {user_id}", exc_info=True)
         # HTTPException은 그대로 전달
         raise http_ex
     except Exception as ex:
         # 일반적인 예외 처리
-        logger.error(f"출석 체크 중 오류 발생: {user.nick_name}", exc_info=True)
+        logger.error(f"출석 체크 중 오류 발생: {user_id}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="서버 내부 오류가 발생했습니다.",
