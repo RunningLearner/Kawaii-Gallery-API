@@ -10,9 +10,11 @@ from app.dtos.user import (
     UserResponseModel,
     UserUpdate,
 )
-from app.utils.dependancies import get_mongo_engine
+from app.utils.dependancies import get_mongo_engine, get_redis_client
 from app.utils.settings import UPLOAD_DIRECTORY
+from app.utils.time_util import get_seconds_until_midnight_kst
 from app.utils.token_utils import get_current_user_id
+import redis.asyncio as aioredis
 
 import logging
 
@@ -27,9 +29,7 @@ async def get_user(
     engine: AIOEngine = Depends(get_mongo_engine),
 ):
     """
-    이 엔드포인트는 아이템을 path parameter를 통해 사용자를 조회합니다.
-
-    - **user_id**: 조회할 사용자의 ObjectId
+    이 엔드포인트는 모든 사용자를 조회합니다.
     """
     try:
         users = await engine.find(User)
@@ -49,11 +49,68 @@ async def get_user(
         )
 
 
+# 출석체크
+@router.post("/attendance")
+async def check_in(
+    user_id: ObjectId = Depends(get_current_user_id),
+    engine: AIOEngine = Depends(get_mongo_engine),
+    redis: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    이 엔드포인트에서 출석 체크를 진행하고 깃털을 하나 얻습니다.
+    출석체크는 하루동안 유효하고 매 24시에 초기화됩니다.
+    """
+    try:
+        # Redis에서 사용자가 출석 체크했는지 확인 (user_id는 사용자 고유의 식별자라고 가정)
+        redis_key = f"attendance:{user_id}"
+
+        if await redis.exists(redis_key):
+            ttl = await redis.ttl(redis_key)
+            raise HTTPException(
+                status_code=400,
+                detail=f"이미 출석 체크를 하셨습니다. {ttl // 3600} 시간 후 다시 출석 가능합니다.",
+            )
+
+        # 사용자 데이터 조회 (ODMantic 이용)
+        user = await engine.find_one(User, User.id == user_id)
+        if not user:
+            raise HTTPException(
+                status_code=404, detail="해당 사용자를 찾을 수 없습니다."
+            )
+
+        # 한국 시간 자정까지 남은 시간 계산
+        seconds_until_midnight = get_seconds_until_midnight_kst()
+
+        # 출석 체크 처리 - Redis에 저장 (TTL은 자정까지 남은 시간으로 설정)
+        await redis.set(redis_key, "checked_in", seconds_until_midnight)
+
+        # 사용자에게 보상을 주는 로직 (예시로 깃털 하나 얻기)
+        user.feather += 1
+        await engine.save(user)
+
+        # ODMantic User 객체를 Pydantic UserResponseModel로 변환 후 반환
+        return {
+            "message": "출석 체크 완료!",
+            "nick_name": user.nick_name,
+        }
+    except HTTPException as http_ex:
+        logger.error(f"출석 체크 중 오류 발생: {user.nick_name}", exc_info=True)
+        # HTTPException은 그대로 전달
+        raise http_ex
+    except Exception as ex:
+        # 일반적인 예외 처리
+        logger.error(f"출석 체크 중 오류 발생: {user.nick_name}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="서버 내부 오류가 발생했습니다.",
+        )
+
+
 # Update - 사용자 정보 수정 (닉네임 변경)
 @router.put("/nickname", response_model=UpdateUserResponseModel)
 async def update_user(
     user_update: UserUpdate,
-    user_id: str = Depends(get_current_user_id),
+    user_id: ObjectId = Depends(get_current_user_id),
     engine: AIOEngine = Depends(get_mongo_engine),
 ):
     """
@@ -82,6 +139,10 @@ async def update_user(
 
         return {"msg": "사용자 정보가 업데이트되었습니다.", "nick_name": user.nick_name}
     except HTTPException as http_ex:
+        logger.error(
+            f"사용자 업데이트 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
@@ -95,48 +156,11 @@ async def update_user(
         )
 
 
-# Delete - 사용자 삭제
-@router.delete("/{user_id}", response_model=DeleteUserResponseModel)
-async def delete_user(
-    user_id: ObjectId,
-    engine: AIOEngine = Depends(get_mongo_engine),
-):
-    """
-    이 엔드포인트는 특정 사용자를 삭제합니다.
-
-    - **user_id**: 삭제할 사용자의 ObjectId
-    """
-    try:
-        user = await engine.find_one(User, User.id == user_id)
-        if not user:
-            raise HTTPException(
-                status_code=404, detail="해당 사용자를 찾을 수 없습니다."
-            )
-
-        await engine.delete(user)
-
-        logger.info(f"사용자 삭제 완료: {user.nick_name} ({user.email})")
-
-        return {"msg": "사용자가 삭제되었습니다."}
-    except HTTPException as http_ex:
-        # http 에러는 다시 raise해서 그대로 클라이언트에 전달
-        raise http_ex
-    except Exception as ex:
-        logger.error(
-            f"사용자 삭제 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
-            exc_info=True,
-        )
-        raise HTTPException(
-            status_code=500,
-            detail="서버 내부 오류가 발생했습니다.",
-        )
-
-
 # Update - 사용자 프로필 이미지 수정
 @router.put("/profile_image", response_model=UpdateProfileImageResponseModel)
 async def update_user_profile_image(
     file: UploadFile = File(..., description="업로드할 이미지 또는 비디오 파일들"),
-    user_id: str = Depends(get_current_user_id),
+    user_id: ObjectId = Depends(get_current_user_id),
     engine: AIOEngine = Depends(get_mongo_engine),
 ):
     """
@@ -187,11 +211,56 @@ async def update_user_profile_image(
             "profile_image_url": file_url,
         }
     except HTTPException as http_ex:
+        logger.error(
+            f"사용자 프로필 이미지 수정 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:
         logger.error(
             f"사용자 프로필 이미지 수정 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="서버 내부 오류가 발생했습니다.",
+        )
+
+
+# Delete - 사용자 삭제
+@router.delete("/{user_id}", response_model=DeleteUserResponseModel)
+async def delete_user(
+    user_id: ObjectId,
+    engine: AIOEngine = Depends(get_mongo_engine),
+):
+    """
+    이 엔드포인트는 특정 사용자를 삭제합니다.
+
+    - **user_id**: 삭제할 사용자의 ObjectId
+    """
+    try:
+        user = await engine.find_one(User, User.id == user_id)
+        if not user:
+            raise HTTPException(
+                status_code=404, detail="해당 사용자를 찾을 수 없습니다."
+            )
+
+        await engine.delete(user)
+
+        logger.info(f"사용자 삭제 완료: {user.nick_name} ({user.email})")
+
+        return {"msg": "사용자가 삭제되었습니다."}
+    except HTTPException as http_ex:
+        logger.error(
+            f"사용자 삭제 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
+        # http 에러는 다시 raise해서 그대로 클라이언트에 전달
+        raise http_ex
+    except Exception as ex:
+        logger.error(
+            f"사용자 삭제 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
             exc_info=True,
         )
         raise HTTPException(
@@ -226,6 +295,10 @@ async def get_user_by_id(
         # 변환된 사용자 데이터를 반환
         return user
     except HTTPException as http_ex:
+        logger.error(
+            f"사용자 조회 실패: {user_id} ({user.email if user.email else '이메일 정보 찾을 수 없음'})",
+            exc_info=True,
+        )
         # http 에러는 다시 raise해서 그대로 클라이언트에 전달
         raise http_ex
     except Exception as ex:

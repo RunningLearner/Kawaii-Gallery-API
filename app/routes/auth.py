@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 import logging
-from odmantic import AIOEngine
+from odmantic import AIOEngine, ObjectId
 from app.database.models.token import FCMToken
 from app.database.models.user import User
 from app.dtos.auth import FCMTokenCreate
@@ -99,7 +99,7 @@ async def register(
 async def create_fcm_token(
     token_info: FCMTokenCreate,
     engine: AIOEngine = Depends(get_mongo_engine),
-    user_id: str = Depends(get_current_user_id),
+    user_id: ObjectId = Depends(get_current_user_id),
 ):
     try:
         # 사용자 조회
