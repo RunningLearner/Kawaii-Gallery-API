@@ -48,6 +48,43 @@ async def get_user(
             detail="서버 내부 오류가 발생했습니다.",
         )
 
+# 광고보상
+@router.post("/reward")
+async def ad_reward(
+    user_id: ObjectId = Depends(get_current_user_id),
+    engine: AIOEngine = Depends(get_mongo_engine),
+):
+    """
+    이 엔드포인트에서 보상형 광고를 시청하고 깃털을 얻습니다.
+    """
+    try:
+        # 사용자 데이터 조회 (ODMantic 이용)
+        user = await engine.find_one(User, User.id == user_id)
+        if not user:
+            raise HTTPException(
+                status_code=404, detail="해당 사용자를 찾을 수 없습니다."
+            )
+
+        # 사용자에게 보상을 주는 로직
+        user.feather += 10
+        await engine.save(user)
+
+        # ODMantic User 객체를 Pydantic UserResponseModel로 변환 후 반환
+        return {
+            "message": "광고 보상 완료!",
+            "nick_name": user.nick_name,
+        }
+    except HTTPException as http_ex:
+        logger.error(f"광고 보상 처리 중 오류 발생: {user_id}", exc_info=True)
+        # HTTPException은 그대로 전달
+        raise http_ex
+    except Exception as ex:
+        # 일반적인 예외 처리
+        logger.error(f"광고 보상 처리 중 오류 발생: {user_id}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="서버 내부 오류가 발생했습니다.",
+        )
 
 # 출석체크
 @router.post("/attendance")
