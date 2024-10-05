@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 import os
 from fastapi import APIRouter, File, HTTPException, Depends, Body, UploadFile
 from odmantic import AIOEngine, ObjectId
+from app.database.models.post import Post
 from app.database.models.user import User
 from app.dtos.user import (
     DeleteUserResponseModel,
@@ -145,13 +147,16 @@ async def check_in(
 
 # Update - 사용자 정보 수정 (닉네임 변경)
 @router.put("/nickname", response_model=UpdateUserResponseModel)
-async def update_user(
+async def update_user_nick_name(
     user_update: UserUpdate,
     user_id: ObjectId = Depends(get_current_user_id),
     engine: AIOEngine = Depends(get_mongo_engine),
 ):
     """
     이 엔드포인트는 사용자의 닉네임을 수정합니다.
+    사용자가 작성한 게시글들의 닉네임도 업데이트합니다.
+
+    - **nick_name**: 수정할 닉네임
     """
     try:
         user = await engine.find_one(User, User.id == user_id)
@@ -159,7 +164,16 @@ async def update_user(
             raise HTTPException(
                 status_code=404, detail="해당 사용자를 찾을 수 없습니다."
             )
-
+        
+        # 닉네임을 변경한지 15일이 지났는지 확인
+        if user.last_nick_name_updated_at:
+            time_since_last_change = datetime.now() - user.last_nick_name_updated_at
+            if time_since_last_change < timedelta(days=15):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"닉네임은 마지막으로 변경한지 15일 후에 다시 변경할 수 있습니다. 남은 기간: {15 - time_since_last_change.days}일",
+                )
+            
         # 닉네임 중복 체크
         if user_update.nick_name:
             existing_user = await engine.find_one(
@@ -168,11 +182,20 @@ async def update_user(
             if existing_user and existing_user.id != user_id:
                 raise HTTPException(status_code=400, detail="중복된 닉네임입니다.")
 
+            # 닉네임 변경 및 마지막 변경 시간 기록
+            old_nick_name = user.nick_name
             user.nick_name = user_update.nick_name
+            user.last_nick_name_updated_at = datetime.now()
+            
+            # 사용자 게시글들의 닉네임 업데이트
+            posts = await engine.find(Post, Post.user_id == user_id)
+            for post in posts:
+                post.nick_name = user_update.nick_name
+                await engine.save(post)  # 게시글 업데이트
 
         await engine.save(user)
 
-        logger.info(f"사용자 업데이트 완료: {user.nick_name} ({user.email})")
+        logger.info(f"사용자 업데이트 완료 {old_nick_name} -> {user.nick_name} ({user.email})")
 
         return {"msg": "사용자 정보가 업데이트되었습니다.", "nick_name": user.nick_name}
     except HTTPException as http_ex:
